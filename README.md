@@ -79,14 +79,13 @@ encode: {
     '>': '&gt;',
 }
 ```
-
-Most characters in inserted values are not encoded by default. We generally aim to leave inserted strings unmodified, but since the most common use case involves inserting code into an html document, our default behavior is to encode the few characters that will absolutely break html rendering. Passing an Array of characters here will override this set with your own.
+A very common use case for templating involves inserting text into an html document. Using our special "insert encoded" tag (triple curly brackets by default `{{{likeThis}}}`) will encode any characters that would absolutely break html rendering. When the "insert encoded" tag is used, the character map set here specifies which characters will be replaced. Passing an object map of characters here will override this set with your own.
 
 ### escape
 
 default is `[]`
 
-Sometimes, inserted values could break your code if not properly escaped. Although none are escaped by default, any characters provided in this Array will be escaped before they are inserted into the template.
+Sometimes, inserted values could break your code or lead to security vulnerabilities if not properly escaped. Although none are escaped by default, any characters provided in this Array will be escaped before they are inserted into the template.
 
 ## An example using all options
 ```js

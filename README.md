@@ -12,26 +12,29 @@ npm i --save easybars
 ## How to Use
 
 ### The simple way
+`easybars(template, data)`
 ```js
 const easybars = require('easybars');
 const output = easybars('Hello {{name}}!', { name: 'World' });
+
 console.log(output);
 // Hello World!
 ```
 
 ### The more versatile way
+`new Easybars()`
 ```js
 const Easybars = require('easybars');
 
 const easybars = new Easybars();
-const template = easybars.compile('<div class="{{myClass}}">{{myContent}}</div>');
+const template = easybars.compile('<div class="{{myClass}}">{{{myContent}}}</div>');
 const output = template({
     myClass: 'foo',
-    myContent: 'bar',
+    myContent: '&bar',
 });
 
 console.log(output);
-// <div class="foo">bar</div>
+// <div class="foo">&amp;bar</div>
 ```
 
 Inserted content is unmodified by default, but if you wish to encode for HTML, add an extra curly to your tags: `{{{encodeMe}}}`
@@ -60,6 +63,12 @@ tags: {
 }
 ```
 
+### collapse
+
+default is `false`
+
+On occasion, the string returned by the template will need to be written into another file as a string or bundled. Set this option to `true` to collapse all line breaks and extra spaces in your final rendered output into one condensed line.
+
 ### encode
 
 default is
@@ -78,12 +87,6 @@ Most characters in inserted values are not encoded by default. We generally aim 
 default is `[]`
 
 Sometimes, inserted values could break your code if not properly escaped. Although none are escaped by default, any characters provided in this Array will be escaped before they are inserted into the template.
-
-### collapse
-
-default is `false`
-
-On occasion, the string returned by the template will need to be written into another file as a string or bundled. Set this option to `true` to collapse all line breaks and extra spaces in your final rendered output into one condensed line.
 
 ## An example using all options
 ```js

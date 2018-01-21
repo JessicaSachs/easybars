@@ -1,0 +1,30 @@
+{
+  "name": "easybars",
+  "version": "1.0.0",
+  "description": "String templating made {{easy}}",
+  "keywords": [
+    "handlebars",
+    "mustache",
+    "template",
+    "curly",
+    "brackets",
+    "simple",
+    "collapse",
+    "line"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syntaxable/easybars.git"
+  },
+  "bugs": {
+    "url": "https://github.com/syntaxable/easybars/issues"
+  },
+  "scripts": {
+    "test": "node test"
+  },
+  "devDependencies": {
+    "feather-test": "^3.6.0"
+  },
+  "dependencies": {}
+}

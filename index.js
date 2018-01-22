@@ -4,6 +4,11 @@ var defaultOptions = {
         '&': '&amp;',
         '<': '&lt;',
         '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+        '/': '&#x2F;',
+        '`': '&#x60;',
+        '=': '&#x3D;',
     },
     escape: [],
     tags: {
@@ -26,10 +31,6 @@ function escapeChars(str, escape) {
         str = str.replace(new RegExp('(^|[^\\\\])(' + escape[i] + ')', 'g'), "$1\\$2");
     }
     return str;
-}
-
-function escapeRegExp(str) {
-    return str.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
 }
 
 function toString(value) {
@@ -66,10 +67,13 @@ function Easybars() {
                     n = template.push(isVarRecord ? '' : found[i]);
                 }
                 if (isVarRecord) {
-                    vars[found[i]] = {
+                    if (!Array.isArray(vars[found[i]])) {
+                        vars[found[i]] = [];
+                    }
+                    vars[found[i]].push({
                         index: n - 1,
                         encode: found[i - 1] === options.tags.encoded[0],
-                    };
+                    });
                 }
             }
 
@@ -77,7 +81,7 @@ function Easybars() {
                 if (keyName) {
                     var path = keyName.split('.');
                     var value = data;
-                    for (var i = 0, len = path.length; i < len; i++) {
+                    for (var i = 0, iLen = path.length; i < iLen; i++) {
                         value = value[path[i]];
                     }
                     if (typeof value === 'object') {
@@ -85,12 +89,15 @@ function Easybars() {
                             addValuesToTemplate(keyName + '.' + o, data);
                         }
                     } else {
-                        var ref = vars[keyName];
-                        if (ref) {
-                            if (ref.encode) {
-                                template[ref.index] = escapeChars(encodeChars(toString(value), options.encode), options.escape);
-                            } else {
-                                template[ref.index] = escapeChars(toString(value), options.escape);
+                        var refs = vars[keyName];
+                        if (refs) {
+                            for (var j = 0, jLen = refs.length; j < jLen; j++) {
+                                var ref = refs[j];
+                                if (ref.encode) {
+                                    template[ref.index] = escapeChars(encodeChars(toString(value), options.encode), options.escape);
+                                } else {
+                                    template[ref.index] = escapeChars(toString(value), options.escape);
+                                }
                             }
                         } else {
                             // not found in template

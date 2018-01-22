@@ -5,9 +5,9 @@ describe('with default settings', function () {
     var easyDefault = new Easybars();
 
     describe('spaces within tags are ignored, line breaks are preserved', function (expect) {
-        var render = easyDefault.compile('<div class="{{foo}}">{{  \n bar  }}   foo\n</div>');
-        var output = render({ foo: 'hello', bar: 'world' });
-        expect(output).toBe('<div class="hello">world   foo\n</div>');
+        var render = easyDefault.compile('<div class="{{foo}}">{{  \n bar  }}   foo\n{{{num}}}</div>');
+        var output = render({ foo: 'hello', bar: 'world', num: 0 });
+        expect(output).toBe('<div class="hello">world   foo\n0</div>');
     });
 
     describe('only valid tags are replaced, can use dot notation', function (expect) {
@@ -20,6 +20,12 @@ describe('with default settings', function () {
         var render = easyDefault.compile('<div class="{{{foo}}}">{{bar}} {{elem}}</div>');
         var output = render({ foo: '<>&<>', bar: '"!@#$%^*()-+=', elem: '<a href="#">link</a>' });
         expect(output).toBe('<div class="&lt;&gt;&amp;&lt;&gt;">"!@#$%^*()-+= <a href="#">link</a></div>');
+    });
+
+    describe('leaves unmatched variables unchanged in the template', function (expect) {
+        var render = easyDefault.compile('This {{{qualifier}} {{{var1}}} {{var2}} should still be {{where}}');
+        var output = render({ qualifier: 'amazing', where: 'here' });
+        expect(output).toBe('This amazing {{{var1}}} {{var2}} should still be here');
     });
 
     describe('works as just a one-off method', (expect) => {

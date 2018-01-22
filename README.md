@@ -105,6 +105,12 @@ default is `[]`
 
 Sometimes, inserted values could break your code or lead to security vulnerabilities if not properly escaped. Although none are escaped by default, any characters provided in this Array will be escaped before they are inserted into the template.
 
+### removeUnmatched
+
+default is `false`
+
+It is not uncommon to nest templates within templates, and it is often useful to replace some vars in one step and leave some for another step. Our default behavior is to leave unmatched variables in the template so that they can be replaced at a later time. If you would prefer to hide unmatched variables, set this option to `true` to replace them with an empty string.
+
 ## An example using all options
 ```js
 new Easybars({

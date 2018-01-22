@@ -50,9 +50,13 @@ function Easybars() {
     var args = arguments;
     if (this instanceof Easybars) {
         var options = Object.assign({}, defaultOptions, args[0]);
-        var openTag = '(' + options.tags.encoded[0] + '|' + options.tags.raw[0] + ')';
-        var closeTag = '(?:' + options.tags.encoded[1] + '|' + options.tags.raw[1] + ')';
-        var findTags = new RegExp(openTag + '\\s*([\\w\\.]+)\\s*' + closeTag, 'g');
+        var openTag = options.tags.raw[0];
+        var openTagEncoded = options.tags.encoded[0];
+        var closeTag = options.tags.raw[1];
+        var closeTagEncoded = options.tags.encoded[1];
+        var matchOpenTag = '(' + openTagEncoded + '|' + openTag + ')';
+        var matchCloseTag = '(?:' + closeTagEncoded + '|' + closeTag + ')';
+        var findTags = new RegExp(matchOpenTag + '\\s*([\\w\\.]+)\\s*' + matchCloseTag, 'g');
 
         this.compile = function (templateString) {
             var template = [];
@@ -64,7 +68,19 @@ function Easybars() {
                 var isVarRecord = (i + 1)%3 === 0;
                 var n;
                 if (!isTagRecord) {
-                    n = template.push(isVarRecord ? '' : found[i]);
+                    if (isVarRecord) {
+                        if (options.removeUnmatched) {
+                            n = template.push('');
+                        } else {
+                            if (found[i-1] === openTagEncoded) {
+                                n = template.push(openTagEncoded + found[i] + closeTagEncoded);
+                            } else {
+                                n = template.push(openTag + found[i] + closeTag);
+                            }
+                        }
+                    } else {
+                        n = template.push(found[i]);
+                    }
                 }
                 if (isVarRecord) {
                     if (!Array.isArray(vars[found[i]])) {
@@ -72,7 +88,7 @@ function Easybars() {
                     }
                     vars[found[i]].push({
                         index: n - 1,
-                        encode: found[i - 1] === options.tags.encoded[0],
+                        encode: found[i - 1] === openTagEncoded,
                     });
                 }
             }

@@ -17,10 +17,11 @@ describe('with custom settings', function () {
             '=': '0',
         },
         escape: ['"','8'],
+        removeUnmatched: true,
         tags: {
             raw: ['<%=','%>'],
             encoded: ['<%-','%>'],
-        }
+        },
     });
 
     describe('custom tags are respected, line breaks are compressed', function (expect) {
@@ -36,9 +37,15 @@ describe('with custom settings', function () {
     });
 
     describe('custom chars are escaped', function (expect) {
-        var render = easyDefault.compile('<div class="<%-foo%>"><%-bar%> foo</div>');
+        var render = easyDefault.compile('<div class="<%-foo%>"><%=bar%> foo</div>');
         var output = render({ foo: '"quoted"', bar: '8,\\8,\\8,8,8,\\8' });
         expect(output).toBe('<div class="\\"quoted\\"">\\8,\\8,\\8,\\8,\\8,\\8 foo</div>');
+    });
+
+    describe('unmatched vars can be removed/hidden from the template', function (expect) {
+        var render = easyDefault.compile('<div class="<%=foo%>"><%-bar%> foo</div>');
+        var output = render({ foo: 'matched' });
+        expect(output).toBe('<div class="matched"> foo</div>');
     });
 
 });

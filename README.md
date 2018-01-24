@@ -18,6 +18,8 @@ Easybars offers templating similar to Handlebars or Mustache but with more focus
    * Easily transform a multi-line template file into a one line string.
 * **High Performance**
    * We're way faster than Handlebars, and about even with Resig's Micro-Templating.
+* **Simple Looping**
+   * Because sometimes it helps to pre-compile certain template objects with iteration before render time. ([see below](#helpers))
 
 ## How to Install
 ```
@@ -65,6 +67,7 @@ default is
 tags: {
     raw: ['{{','}}'],
     encoded: ['{{{','}}}'],
+    section: ['{{#','{{/','}}'],
 }
 ```
 
@@ -73,6 +76,7 @@ If you don't like curly braces, you can specify which tags to use for replacemen
 tags: {
     raw: ['<%=','%>'],
     encoded: ['<%-','%>'],
+    section: ['<%#','<%/','%>'],
 }
 ```
 
@@ -126,4 +130,34 @@ new Easybars({
         encoded: ['<%-','%>'],
     }
 });
+```
+
+---
+
+## Helpers
+
+### Each
+
+The `#each` helper tag may be used to iterate over each item within a given data object and duplicate the contained template elements each time.
+
+Using `#each` with an Object
+```js
+easybars('<ul>{{#each fruits}}<li>{{@key}} is {{@value}}</li>{{/each}}</ul>', { fruits: { apple: 'red', banana: 'yellow' } });
+// <ul><li>apple is red</li><li>banana is yellow</li></ul>
+```
+
+Using `#each` with an Array
+```js
+easybars('<ul>{{#each fruits}}<li>{{@key}} is {{name}}</li>{{/each}}</ul>', { fruits: [{ name: 'apple' }, { name: 'banana' }] });
+// <ul><li>0 is apple</li><li>1 is banana</li></ul>
+```
+
+### For
+
+The `#for n` helper tag may be used to iterate `n` number of times and duplicate the contained template elements  `n` times.
+
+Using `#for`
+```js
+easybars('<ul>{{#for 2 fruits}}<li>{{name}} is {{color}}</li>{{/for}}</ul>', { fruits: [{ name: 'apple', color: 'red' }, { name: 'banana', color: 'yellow' }, { name: 'kiwi', color: 'green' }] });
+// <ul><li>apple is red</li><li>banana is yellow</li></ul>
 ```

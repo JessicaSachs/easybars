@@ -142,13 +142,25 @@ The `#each` helper tag may be used to iterate over each item within a given data
 
 Using `#each` with an Object
 ```js
-easybars('<ul>{{#each fruits}}<li>{{@key}} is {{@value}}</li>{{/each}}</ul>', { fruits: { apple: 'red', banana: 'yellow' } });
+const data = {
+    fruits: {
+        apple: 'red',
+        banana: 'yellow',
+    },
+};
+easybars('<ul>{{#each fruits}}<li>{{@key}} is {{@value}}</li>{{/each}}</ul>', data);
 // <ul><li>apple is red</li><li>banana is yellow</li></ul>
 ```
 
 Using `#each` with an Array
 ```js
-easybars('<ul>{{#each fruits}}<li>{{@key}} is {{name}}</li>{{/each}}</ul>', { fruits: [{ name: 'apple' }, { name: 'banana' }] });
+const data = {
+    fruits: [
+        { name: 'apple' },
+        { name: 'banana' },
+    ],
+};
+easybars('<ul>{{#each fruits}}<li>{{@key}} is {{name}}</li>{{/each}}</ul>', data);
 // <ul><li>0 is apple</li><li>1 is banana</li></ul>
 ```
 
@@ -158,6 +170,13 @@ The `#for n` helper tag may be used to iterate `n` number of times and duplicate
 
 Using `#for`
 ```js
-easybars('<ul>{{#for 2 fruits}}<li>{{name}} is {{color}}</li>{{/for}}</ul>', { fruits: [{ name: 'apple', color: 'red' }, { name: 'banana', color: 'yellow' }, { name: 'kiwi', color: 'green' }] });
+const data = {
+    fruits: [
+        { name: 'apple', color: 'red' },
+        { name: 'banana', color: 'yellow' },
+        { name: 'kiwi', color: 'green' },
+    ],
+};
+easybars('<ul>{{#for 2 fruits}}<li>{{name}} is {{color}}</li>{{/for}}</ul>', data);
 // <ul><li>apple is red</li><li>banana is yellow</li></ul>
 ```

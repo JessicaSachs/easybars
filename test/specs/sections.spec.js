@@ -68,6 +68,11 @@ describe('with sections', function () {
             expect(output).toBe('<ul><li>apple is 0</li><li>banana is 1</li></ul>');
         });
 
+        describe('iterates less than n times when data is unavailable', function (expect) {
+            var output = Easybars('<ul>{{#for 5 fruits}}<li>{{name}} is {{@index}}</li>{{/for}}</ul>', { fruits: [{ name: 'apple' }, { name: 'banana' }] });
+            expect(output).toBe('<ul><li>apple is 0</li><li>banana is 1</li></ul>');
+        });
+
     });
 
 });

@@ -166,7 +166,7 @@ easybars('<ul>{{#each fruits}}<li>{{@key}} is {{name}}</li>{{/each}}</ul>', data
 
 ### For
 
-The `#for n` helper tag may be used to iterate `n` number of times and duplicate the contained template elements  `n` times.
+The `#for n` helper tag may be used to iterate `n` number of times and duplicate the contained template elements a maximum of `n` times. If fewer than `n` items are available in the collection, the loop will drop out early.
 
 Using `#for`
 ```js

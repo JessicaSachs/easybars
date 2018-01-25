@@ -227,16 +227,19 @@ function Easybars() {
                     var num = parseInt(terms[0], 10) || sectionData.length || 0;
                     for (var t = 0; t < num; t++) {
                         var sectionDataThis = sectionData[t];
-                        if (typeof sectionDataThis === 'object') {
-                            sectionDataThis['@index'] = t;
-                        } else {
-                            sectionDataThis = {
-                                '@index': t,
-                                '@value': sectionDataThis,
-                            };
+                        var sectionDataThisType = typeof sectionDataThis;
+                        if (sectionDataThisType !== 'undefined') {
+                            if (sectionDataThisType === 'object') {
+                                sectionDataThis['@index'] = t;
+                            } else {
+                                sectionDataThis = {
+                                    '@index': t,
+                                    '@value': sectionDataThis,
+                                };
+                            }
+                            var sectionResult = new Easybars(options).compile(body)(sectionDataThis);
+                            sectionTemplate.push(sectionResult);
                         }
-                        var sectionResult = new Easybars(options).compile(body)(sectionDataThis);
-                        sectionTemplate.push(sectionResult);
                     }
                 }
 

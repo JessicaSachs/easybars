@@ -1,3 +1,6 @@
+var arrSlice = Array.prototype.slice;
+var hasProp = Object.prototype.hasOwnProperty;
+
 var defaultOptions = {
     collapse: false,
     encode: {
@@ -19,6 +22,27 @@ var defaultTags = {
     section: ['{{#','{{/','}}'],
 };
 
+function each(collection, iteratee, thisArg) {
+    if (collection) {
+        if (typeof collection.length !== 'undefined') {
+            for (var i = 0, len = collection.length; i < len; i++) {
+                if (iteratee.call(thisArg, collection[i], i, collection) === false) {
+                    return;
+                }
+            }
+
+        } else {
+            for (var prop in collection) {
+                if (hasProp.call(collection, prop)) {
+                    if (iteratee.call(thisArg, collection[prop], prop, collection) === false) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
 function encodeChars(str, encode) {
     for (var x in encode) {
         if (encode.hasOwnProperty(x)) {
@@ -37,6 +61,20 @@ function escapeChars(str, escape) {
 
 function escapeRegExp(str) {
     return str.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
+}
+
+function extend() {
+    var ret = arguments[0];
+
+    each(arrSlice.call(arguments, 1), function(ext) {
+        each(ext, function(val, key) {
+            if (typeof val !== 'undefined') {
+                ret[key] = val;
+            }
+        });
+    }, this);
+
+    return ret;
 }
 
 function toString(value) {
@@ -100,8 +138,8 @@ function Easybars() {
     var args = arguments;
     if (this instanceof Easybars) {
         var _options = args[0] || {};
-        var options = Object.assign({}, defaultOptions, _options);
-        var tags = Object.assign({}, defaultTags, _options.tags);
+        var options = extend({}, defaultOptions, _options);
+        var tags = extend({}, defaultTags, _options.tags);
         var tagOpen = tags.raw[0];
         var tagClose = tags.raw[1];
         var encodedTagOpen = tags.encoded[0];

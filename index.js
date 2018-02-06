@@ -259,6 +259,17 @@ function Easybars() {
                         }
                     }
 
+                } else if (sectionType === 'if') {
+                    var value = data;
+                    var path = terms.pop().split('.');
+                    for (var i = 0, len = path.length; i < len; i++) {
+                        if(value) value = value[path[i]];
+                    }
+                    if (value) {
+                        var sectionResult = new Easybars(options).compile(body)(data);
+                        sectionTemplate.push(sectionResult);
+                    }
+
                 } else if (sectionType === 'for') {
                     terms.shift();
                     var sectionData = data[terms[1]] || [];

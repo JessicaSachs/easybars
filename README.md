@@ -180,3 +180,20 @@ const data = {
 easybars('<ul>{{#for 2 fruits}}<li>{{name}} is {{color}}</li>{{/for}}</ul>', data);
 // <ul><li>apple is red</li><li>banana is yellow</li></ul>
 ```
+
+### If
+
+The `#if` helper tag may be used to conditionally display a set of template elements based on the truthiness of a given item in the data object.
+
+Using `#if`
+```js
+const data = {
+    fruits: [
+        { name: 'apple', color: 'red' },
+        { name: 'banana', color: 'yellow' },
+        { name: 'kiwi', color: 'green' },
+    ],
+};
+easybars('{{#if fruits}}<h3>Fruit List</h3><ul>{{#for 2 fruits}}<li>{{name}} is {{color}}</li>{{/for}}</ul>{{/if}}', data);
+// <h3>Fruit List</h3><ul><li>apple is red</li><li>banana is yellow</li></ul>
+```

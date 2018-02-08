@@ -28,8 +28,15 @@ describe('with default settings', function () {
         expect(output).toBe('This amazing {{{var1}}} {{var2}} should still be here');
     });
 
-    describe('works as just a one-off method', (expect) => {
+    describe('works as just a one-off method', function (expect) {
         expect(Easybars('{{name}} says hello\n{{name}}!', { name: 'Bob' }, { collapse: true })).toBe('Bob says hello Bob!');
     });
 
+    describe('handles circular objects', function (expect) {
+        var render = easyDefault.compile('<div>{{farmAnimal}} {{undefinedProperty}}</div>');
+        var dataObject = { farmAnimal: 'cat' };
+        dataObject.circularReference = dataObject;
+        var output = render(dataObject);
+        expect(output).toBe('<div>cat {{undefinedProperty}}</div>');
+    });
 });

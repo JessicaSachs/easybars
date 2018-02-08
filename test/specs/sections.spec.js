@@ -49,7 +49,7 @@ describe('with sections', function () {
             expect(output).toBe('<div>!<ul><li>chicken 0</li><li>duck 1</li></ul>!</div>');
         });
 
-        describe('loops arrays of objects', (expect) => {
+        describe('loops arrays of objects', function (expect) {
             var output = Easybars('<ul>{{#each fruits}}<li>{{name}} is {{@key}}</li>{{/each}}</ul>', { fruits: [{ name: 'apple' }, { name: 'banana' }] });
             expect(output).toBe('<ul><li>apple is 0</li><li>banana is 1</li></ul>');
         });

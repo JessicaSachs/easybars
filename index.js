@@ -202,33 +202,18 @@ function Easybars() {
                 }
             }
 
-            function replaceVarsInCollection(collection, vars, keyName, data) {
-                if (keyName) {
-                    var path = keyName.split('.');
-                    var value = data;
-                    for (var i = 0, iLen = path.length; i < iLen; i++) {
-                        value = value[path[i]];
-                    }
-                    if (typeof value === 'object') {
-                        for (var o in value) {
-                            replaceVarsInCollection(collection, vars, keyName + '.' + o, data);
-                        }
-                    } else {
-                        var refs = vars[keyName];
-                        if (refs) {
-                            for (var j = 0, jLen = refs.length; j < jLen; j++) {
-                                var ref = refs[j];
-                                if (ref.encode) {
-                                    template[ref.index] = escapeChars(encodeChars(toString(value), options.encode), options.escape);
-                                } else {
-                                    template[ref.index] = escapeChars(toString(value), options.escape);
-                                }
-                            }
+            function replaceVars(vars, data) {
+                each(vars, function (refs, key) {
+                    var value = key.split('.').reduce(function index(obj,i) {return obj && obj[i]}, data);
+                    each(refs, function (ref) {
+                        if (typeof value === 'undefined') { return; }
+                        if (ref.encode) {
+                            template[ref.index] = escapeChars(encodeChars(toString(value), options.encode), options.escape);
                         } else {
-                            // not found in template
+                            template[ref.index] = escapeChars(toString(value), options.escape);
                         }
-                    }
-                }
+                    });
+                });
             }
 
             function addSectionsToTemplate(section, terms, body, data) {
@@ -296,11 +281,7 @@ function Easybars() {
             }
 
             return function (data) {
-                for (var k in data) {
-                    if (data.hasOwnProperty(k)) {
-                        replaceVarsInCollection(template, varRefs, k, data);
-                    }
-                }
+                replaceVars(varRefs, data);
                 for (var s = 0, sLen = sections.length; s < sLen; s++) {
                     var section = sections[s];
                     var command = section.value.split(sectionTagClose);

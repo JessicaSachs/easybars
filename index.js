@@ -202,8 +202,9 @@ function Easybars() {
                 }
             }
 
-            function replaceVars(vars, data) {
-                each(vars, function (refs, key) {
+            function replaceVars(data) {
+                Object.keys(varRefs).forEach(function (key) {
+                    var refs = varRefs[key];
                     var value = key.split('.').reduce(function index(obj,i) {return obj && obj[i]}, data);
                     each(refs, function (ref) {
                         if (typeof value === 'undefined') { return; }
@@ -281,7 +282,7 @@ function Easybars() {
             }
 
             return function (data) {
-                replaceVars(varRefs, data);
+                replaceVars(data);
                 for (var s = 0, sLen = sections.length; s < sLen; s++) {
                     var section = sections[s];
                     var command = section.value.split(sectionTagClose);

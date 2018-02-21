@@ -194,6 +194,61 @@ const data = {
         { name: 'kiwi', color: 'green' },
     ],
 };
-easybars('{{#if fruits}}<h3>Fruit List</h3><ul>{{#for 2 fruits}}<li>{{name}} is {{color}}</li>{{/for}}</ul>{{/if}}', data);
-// <h3>Fruit List</h3><ul><li>apple is red</li><li>banana is yellow</li></ul>
+easybars('{{#if fruits}}<ul>{{#for 2 fruits}}<li>{{name}} is {{color}}</li>{{/for}}</ul>{{/if}}', data);
+// <ul><li>apple is red</li><li>banana is yellow</li></ul>
+```
+
+### Components
+
+The `#component` helper tag may be used to insert sub templates into the main template and populate them with their own data objects.
+
+Using `#component` (simple)
+```js
+const template = '{{#component headline}}<p>{{body}}</p>';
+const data = {
+    body: 'All the things',
+    headline: {
+        title: 'Breaking News',
+        subtitle: 'Live on the scene',
+    },
+};
+const components = {
+    headline: '<h1>{{title}}</h1><h2>{{subtitle}}</h2>',
+};
+new Easybars().compile(template, components)(data);
+// <h1>Breaking News</h1><h2>Live on the scene</h2><p>All the things</p>
+```
+
+Using `#component` (advanced)
+```js
+const template = '{{#each articles}}{{#component headline.simple:copy.lead}}{{copy.body}}{{/each}}';
+const data = {
+    articles: [
+        {
+            copy: {
+                lead: {
+                    title: 'Breaking News',
+                    subtitle: 'Live on the scene',
+                },
+                body: '...',
+            },
+        },
+        {
+            copy: {
+                lead: {
+                    title: 'Man Bites Dog',
+                    subtitle: 'Full story at 11',
+                },
+                body: '...',
+            },
+        },
+    ],
+};
+const components = {
+    headline: {
+        simple: '<h1>{{title}}</h1><h2>{{subtitle}}</h2>',
+    },
+};
+new Easybars().compile(template, components)(data);
+// <h1>Breaking News</h1><h2>Live on the scene</h2>...<h1>Man Bites Dog</h1><h2>Full story at 11</h2>...
 ```

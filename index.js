@@ -77,6 +77,10 @@ function extend() {
     return ret;
 }
 
+function getPropertySafe(key, data) {
+    return key.split('.').reduce(function index(obj,i) {return obj && obj[i]}, data);
+}
+
 function toString(value) {
     if (typeof value === 'object') {
         return JSON.stringify(value);
@@ -84,45 +88,51 @@ function toString(value) {
     return '' + value;
 }
 
-function getRecordModel(found, index, encodedTagOpen) {
+function getRecordModel(found, index, encodedTagStart) {
     /** record array looks like this
     [
         0: content
-        1: section tag opener
-        2: section tag contents
-        3: section tag name
-        4: tag opener
-        5: variable name
-        6: content
+        1: complex section tag contents
+        2: complex section tag name
+        3: simple section tag contents
+        4: simple section tag name
+        5: tag opener
+        6: variable name
+        7: content
         ...
     ]
     **/
-    var record = {
-        cycle: index % 6,
-    };
+    var record = {};
     var val = found[index];
 
-    switch (record.cycle) {
+    switch (index % 7) {
         case 0:
             record.toTemplate = true;
+            record.isContent = true;
             record.value = val;
             break;
         case 1:
-            break;
-        case 2:
             record.toTemplate = true;
             record.value = val;
             record.sectionType = found[index + 1];
             break;
+        case 2:
+            break;
         case 3:
+            record.toTemplate = true;
+            record.value = val;
+            record.sectionType = found[index + 1];
             break;
         case 4:
             break;
         case 5:
+            break;
+        case 6:
             record.toTemplate = true;
+            record.isVarName = true;
             record.value = val;
             record.ref = val;
-            record.encode = found[index - 1] === encodedTagOpen;
+            record.encode = found[index - 1] === encodedTagStart;
     }
 
     return record;
@@ -131,7 +141,7 @@ function getRecordModel(found, index, encodedTagOpen) {
 
 /**
  * Can be used in two ways:
- *   (1) new Easybars(options).compile(template)(data)
+ *   (1) new Easybars(options).compile(template, components)(data)
  *   (2) Easybars(template, data, options)
  */
 function Easybars() {
@@ -142,17 +152,22 @@ function Easybars() {
         var tags = extend({}, defaultTags, _options.tags);
         var tagOpen = tags.raw[0];
         var tagClose = tags.raw[1];
-        var encodedTagOpen = tags.encoded[0];
-        var encodedTagClose = tags.encoded[1];
-        var sectionTagStart = tags.section[0];
-        var sectionTagFinish = tags.section[1];
-        var sectionTagClose = tags.section[2];
-        var matchOpenTag = '(' + escapeRegExp(encodedTagOpen) + '|' + escapeRegExp(tagOpen) + ')';
-        var matchCloseTag = '(?:' + escapeRegExp(encodedTagClose) + '|' + escapeRegExp(tagClose) + ')';
-        var specialLogicTag = '(' + escapeRegExp(sectionTagStart) + ')(([\\w]+) .+)' + escapeRegExp(sectionTagFinish) + '\\3' + escapeRegExp(sectionTagClose) + '|';
-        var findTags = new RegExp(specialLogicTag + matchOpenTag + '\\s*(@?[\\w\\.]+)\\s*' + matchCloseTag, 'g');
+        var encodedTagStart = tags.encoded[0];
+        var encodedTagEnd = tags.encoded[1];
+        var sectionTagOpenStart = tags.section[0];
+        var sectionTagOpenStartEscaped = escapeRegExp(sectionTagOpenStart);
+        var sectionTagCloseStart = tags.section[1];
+        var sectionTagEnd = tags.section[2];
+        var sectionTagEndEscaped = escapeRegExp(sectionTagEnd);
+        var matchOpenTag = '(' + escapeRegExp(encodedTagStart) + '|' + escapeRegExp(tagOpen) + ')';
+        var matchCloseTag = '(?:' + escapeRegExp(encodedTagEnd) + '|' + escapeRegExp(tagClose) + ')';
+        var complexSectionMatcher = sectionTagOpenStartEscaped + '(([\\w]+) .+)' + '(?:' + escapeRegExp(sectionTagCloseStart) + '\\2' + sectionTagEndEscaped + ')+';
+        var simpleSectionMatcher = sectionTagOpenStartEscaped + '(([\\w]+) .+?)' + sectionTagEndEscaped;
+        var findTags = new RegExp(complexSectionMatcher + '|' + simpleSectionMatcher + '|' + matchOpenTag + '\\s*(@?[\\w\\.]+)\\s*' + matchCloseTag, 'g');
 
-        this.compile = function (templateString) {
+        this.compile = function (templateString, components) {
+            components = components || {};
+
             var template = [];
             var sections = [];
             var varRefs = {};
@@ -160,24 +175,24 @@ function Easybars() {
             var found = templateString.split(findTags);
 
             for (var i = 0, len = found.length; i < len; i++) {
-                var record = getRecordModel(found, i, encodedTagOpen);
+                var record = getRecordModel(found, i, encodedTagStart);
                 var n;
 
                 if (record.toTemplate && record.value) {
-                    if (record.cycle === 0) {
+                    if (record.isContent) {
                         n = template.push(record.value);
                     } else {
                         if (options.removeUnmatched) {
                             n = template.push('');
                         } else {
-                            if (record.cycle === 5) {
+                            if (record.isVarName) {
                                 if (record.encode) {
-                                    n = template.push(encodedTagOpen + record.value + encodedTagClose);
+                                    n = template.push(encodedTagStart + record.value + encodedTagEnd);
                                 } else {
                                     n = template.push(tagOpen + record.value + tagClose);
                                 }
                             } else {
-                                n = template.push(sectionTagStart + record.value + sectionTagFinish + record.sectionType + sectionTagClose);
+                                n = template.push(sectionTagOpenStart + record.value + sectionTagCloseStart + record.sectionType + sectionTagEnd);
                             }
                         }
                     }
@@ -205,15 +220,16 @@ function Easybars() {
             function replaceVars(data) {
                 Object.keys(varRefs).forEach(function (key) {
                     var refs = varRefs[key];
-                    var value = key.split('.').reduce(function index(obj,i) {return obj && obj[i]}, data);
-                    each(refs, function (ref) {
-                        if (typeof value === 'undefined') { return; }
-                        if (ref.encode) {
-                            template[ref.index] = escapeChars(encodeChars(toString(value), options.encode), options.escape);
-                        } else {
-                            template[ref.index] = escapeChars(toString(value), options.escape);
-                        }
-                    });
+                    var value = getPropertySafe(key, data);
+                    if (typeof value !== 'undefined') {
+                        each(refs, function (ref) {
+                            if (ref.encode) {
+                                template[ref.index] = escapeChars(encodeChars(toString(value), options.encode), options.escape);
+                            } else {
+                                template[ref.index] = escapeChars(toString(value), options.escape);
+                            }
+                        });
+                    }
                 });
             }
 
@@ -222,11 +238,7 @@ function Easybars() {
                 var sectionTemplate = [];
 
                 if (sectionType === 'each') {
-                    var value = data;
-                    var path = terms.pop().split('.');
-                    for (var i = 0, len = path.length; i < len; i++) {
-                        value = value[path[i]];
-                    }
+                    var value = getPropertySafe(terms.pop(), data);
                     if (typeof value === 'object') {
                         for (var x in value) {
                             if (value.hasOwnProperty(x)) {
@@ -239,20 +251,16 @@ function Easybars() {
                                         '@value': sectionData,
                                     };
                                 }
-                                var sectionResult = new Easybars(options).compile(body)(sectionData);
+                                var sectionResult = new Easybars(options).compile(body, components)(sectionData);
                                 sectionTemplate.push(sectionResult);
                             }
                         }
                     }
 
                 } else if (sectionType === 'if') {
-                    var value = data;
-                    var path = terms.pop().split('.');
-                    for (var i = 0, len = path.length; i < len; i++) {
-                        if(value) value = value[path[i]];
-                    }
+                    var value = getPropertySafe(terms.pop(), data);
                     if (value) {
-                        var sectionResult = new Easybars(options).compile(body)(data);
+                        var sectionResult = new Easybars(options).compile(body, components)(data);
                         sectionTemplate.push(sectionResult);
                     }
 
@@ -272,9 +280,18 @@ function Easybars() {
                                     '@value': sectionDataThis,
                                 };
                             }
-                            var sectionResult = new Easybars(options).compile(body)(sectionDataThis);
+                            var sectionResult = new Easybars(options).compile(body, components)(sectionDataThis);
                             sectionTemplate.push(sectionResult);
                         }
+                    }
+
+                } else if (sectionType === 'component') {
+                    var component = (terms[1] || '').split(':');
+                    var body = getPropertySafe(component[0], components);
+                    var sectionData = getPropertySafe(component[1] || component[0], data);
+                    if (body && sectionData) {
+                        var sectionResult = new Easybars(options).compile(body, components)(sectionData);
+                        sectionTemplate.push(sectionResult);
                     }
                 }
 
@@ -285,9 +302,9 @@ function Easybars() {
                 replaceVars(data);
                 for (var s = 0, sLen = sections.length; s < sLen; s++) {
                     var section = sections[s];
-                    var command = section.value.split(sectionTagClose);
+                    var command = section.value.split(sectionTagEnd);
                     var commandTerms = command.shift().split(' ');
-                    var commandBody = command.join(sectionTagClose);
+                    var commandBody = command.join(sectionTagEnd);
                     addSectionsToTemplate(section, commandTerms, commandBody, data);
                 }
                 var output = template.join('');
@@ -296,7 +313,7 @@ function Easybars() {
         };
 
     } else {
-        return new Easybars(args[2]).compile(args[0])(args[1]);
+        return new Easybars(args[2]).compile(args[0], args[3])(args[1]);
     }
 }
 

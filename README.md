@@ -17,9 +17,9 @@ Easybars offers templating similar to Handlebars or Mustache but with more focus
 * **Collapse Output Into One Line**
    * Easily transform a multi-line template file into a one line string.
 * **High Performance**
-   * We're way faster than Handlebars, and about even with Resig's Micro-Templating.
-* **Simple Looping**
-   * Because sometimes it helps to pre-compile certain template objects with iteration before render time. ([see below](#helpers))
+   * We're way faster than Handlebars, only slightly slower than Resig's Micro-Templating.
+* **Simple Helpers**
+   * Because sometimes you just need a little bit of logic. ([see below](#helpers))
 
 ## How to Install
 ```
@@ -188,6 +188,10 @@ The `#if` helper tag may be used to conditionally display a set of template elem
 Using `#if`
 ```js
 const data = {
+    seasons: {
+        fall: true,
+        harvest: false,
+    },
     fruits: [
         { name: 'apple', color: 'red' },
         { name: 'banana', color: 'yellow' },
@@ -196,6 +200,8 @@ const data = {
 };
 easybars('{{#if fruits}}<ul>{{#for 2 fruits}}<li>{{name}} is {{color}}</li>{{/for}}</ul>{{/if}}', data);
 // <ul><li>apple is red</li><li>banana is yellow</li></ul>
+easybars('{{#if seasons.fall}}<h1>Harvest {{#if !seasons.harvest}}Soon{{/if}}</h1>{{/if}}', data);
+// <h1>Harvest Soon</h1>
 ```
 
 ### Components

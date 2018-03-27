@@ -15,10 +15,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/syntaxable/easybars.git"
+    "url": "https://github.com/seebigs/easybars.git"
   },
   "bugs": {
-    "url": "https://github.com/syntaxable/easybars/issues"
+    "url": "https://github.com/seebigs/easybars/issues"
   },
   "scripts": {
     "test": "node test",

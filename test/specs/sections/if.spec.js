@@ -74,4 +74,10 @@ describe('#if', function () {
         expect(output).toBe('<h3>&lt;:<</h3>');
     });
 
+    describe('handles inverse', function(expect) {
+        var tmp = '{{#if !go.home}}{{thing}}{{/if}}';
+        var output = Easybars(tmp, { go: { home: false }, thing: 'backwards' });
+        expect(output).toBe('backwards');
+    });
+
 });

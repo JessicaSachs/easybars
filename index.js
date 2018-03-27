@@ -258,8 +258,14 @@ function Easybars() {
                     }
 
                 } else if (sectionType === 'if') {
-                    var value = getPropertySafe(terms.pop(), data);
-                    if (value) {
+                    var negated = false;
+                    var test = terms.pop();
+                    if (test.charAt(0) === '!') {
+                        negated = true;
+                        test = test.slice(1);
+                    }
+                    var value = getPropertySafe(test, data);
+                    if (negated ? !value: value) {
                         var sectionResult = new Easybars(options).compile(body, components)(data);
                         sectionTemplate.push(sectionResult);
                     }

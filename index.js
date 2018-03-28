@@ -174,25 +174,76 @@ function Easybars() {
 
             var found = templateString.split(findTags);
 
-            for (var i = 0, len = found.length; i < len; i++) {
-                var record = getRecordModel(found, i, encodedTagStart);
+            each(found, function (f, i) {
+                processRecord(found, i);
+            });
+
+            function processRecord(recordArray, i) {
+                var record = getRecordModel(recordArray, i, encodedTagStart);
+                var recordVal = record.value;
+                var recordSectionType = record.sectionType;
                 var n;
 
-                if (record.toTemplate && record.value) {
+                if (record.toTemplate && recordVal) {
+
+                    // separate overgrouped sections
+                    //   (this allows for both nested and sibling sections)
+                    if (recordSectionType) {
+                        var orphanedClosingTag = sectionTagCloseStart + recordSectionType + sectionTagEnd;
+                        var orphanedOpeningTag = sectionTagOpenStart + recordSectionType + ' ';
+                        var orphanedOpeningTagRegExp = orphanedOpeningTag + '.+?' + sectionTagEnd;
+                        var indexOfOpenerStop = recordVal.indexOf(sectionTagEnd) + 2;
+                        var val = recordVal.substr(indexOfOpenerStop);
+                        var hasOrphanedOpeningTag = val.indexOf(orphanedClosingTag) < val.indexOf(orphanedOpeningTag);
+                        var hasOrphanedClosingTag = val.lastIndexOf(orphanedClosingTag) < val.lastIndexOf(orphanedOpeningTag);
+                        if (hasOrphanedOpeningTag && hasOrphanedClosingTag) {
+                            var pre = '';
+                            var post = '';
+                            var s = val.split(orphanedClosingTag);
+                            if (s.length > 1) {
+                                pre = sectionTagOpenStart + recordVal.substr(0, indexOfOpenerStop) + s.shift() + orphanedClosingTag;
+                                val = s.join(orphanedClosingTag);
+                            }
+                            var actualSectionTagClose = val.match(new RegExp(orphanedOpeningTagRegExp, 'g')).pop();
+                            s = val.split(actualSectionTagClose);
+                            if (s.length > 1) {
+                                post = actualSectionTagClose + s.pop() + orphanedClosingTag;
+                                val = s.join(actualSectionTagClose);
+                            }
+
+                            var foundPre = pre.split(findTags);
+                            each(foundPre, function (f, ndx) {
+                                processRecord(foundPre, ndx);
+                            });
+
+                            var foundVal = val.split(findTags);
+                            each(foundVal, function (f, ndx) {
+                                processRecord(foundVal, ndx);
+                            });
+
+                            var foundPost = post.split(findTags);
+                            each(foundPost, function (f, ndx) {
+                                processRecord(foundPost, ndx);
+                            });
+
+                            return; // stop adding of bad record
+                        }
+                    }
+
                     if (record.isContent) {
-                        n = template.push(record.value);
+                        n = template.push(recordVal);
                     } else {
                         if (options.removeUnmatched) {
                             n = template.push('');
                         } else {
                             if (record.isVarName) {
                                 if (record.encode) {
-                                    n = template.push(encodedTagStart + record.value + encodedTagEnd);
+                                    n = template.push(encodedTagStart + recordVal + encodedTagEnd);
                                 } else {
-                                    n = template.push(tagOpen + record.value + tagClose);
+                                    n = template.push(tagOpen + recordVal + tagClose);
                                 }
                             } else {
-                                n = template.push(sectionTagOpenStart + record.value + sectionTagCloseStart + record.sectionType + sectionTagEnd);
+                                n = template.push(sectionTagOpenStart + recordVal + sectionTagCloseStart + recordSectionType + sectionTagEnd);
                             }
                         }
                     }
@@ -207,11 +258,11 @@ function Easybars() {
                         });
                     }
 
-                    if (record.sectionType) {
+                    if (recordSectionType) {
                         sections.push({
                             index: n - 1,
-                            type: record.sectionType,
-                            value: record.value,
+                            type: recordSectionType,
+                            value: recordVal,
                         });
                     }
                 }

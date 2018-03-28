@@ -80,4 +80,23 @@ describe('#if', function () {
         expect(output).toBe('backwards');
     });
 
+    describe('handles sibling sections', function(expect) {
+        var output, data = { go: true, food: 'bun' };
+
+        output = Easybars('{{#if go}}-{{food}}-{{/if}}-{{#if go}}dog{{/if}}-{{#if go}}-{{food}}-{{/if}}', data);
+        expect(output).toBe('-bun--dog--bun-', 1);
+
+        output = Easybars('{{#if go}}-{{food}}-{{/if}}-{{#if go}}dog{{/if}}-{{#if !go}}-{{food}}-{{/if}}', data);
+        expect(output).toBe('-bun--dog-', 2);
+
+        output = Easybars('{{#if !go}}-{{food}}-{{/if}}-{{#if go}}dog{{/if}}-{{#if go}}-{{food}}-{{/if}}', data);
+        expect(output).toBe('-dog--bun-', 3);
+
+        output = Easybars('{{#if go}}-{{food}}-{{/if}}-{{#if !go}}dog{{/if}}-{{#if go}}-{{food}}-{{/if}}', data);
+        expect(output).toBe('-bun----bun-', 4);
+
+        output = Easybars('{{#if !go}}-{{food}}-{{/if}}-{{#if !go}}dog{{/if}}-{{#if !go}}-{{food}}-{{/if}}', data);
+        expect(output).toBe('--', 5);
+    });
+
 });

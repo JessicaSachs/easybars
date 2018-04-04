@@ -60,7 +60,7 @@ function escapeChars(str, escape) {
 }
 
 function escapeRegExp(str) {
-    return str.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
+    return str.replace(/[\/\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
 }
 
 function extend() {
@@ -157,11 +157,12 @@ function Easybars() {
         var sectionTagOpenStart = tags.section[0];
         var sectionTagOpenStartEscaped = escapeRegExp(sectionTagOpenStart);
         var sectionTagCloseStart = tags.section[1];
+        var sectionTagCloseStartEscaped = escapeRegExp(sectionTagCloseStart);
         var sectionTagEnd = tags.section[2];
         var sectionTagEndEscaped = escapeRegExp(sectionTagEnd);
         var matchOpenTag = '(' + escapeRegExp(encodedTagStart) + '|' + escapeRegExp(tagOpen) + ')';
         var matchCloseTag = '(?:' + escapeRegExp(encodedTagEnd) + '|' + escapeRegExp(tagClose) + ')';
-        var complexSectionMatcher = sectionTagOpenStartEscaped + '(([\\w]+) .+)' + '(?:' + escapeRegExp(sectionTagCloseStart) + '\\2' + sectionTagEndEscaped + ')+';
+        var complexSectionMatcher = '(' + sectionTagOpenStartEscaped + '([\\w]+) .+)' + '(?:' + sectionTagCloseStartEscaped + '\\2' + sectionTagEndEscaped + ')+';
         var simpleSectionMatcher = sectionTagOpenStartEscaped + '(([\\w]+) .+?)' + sectionTagEndEscaped;
         var findTags = new RegExp(complexSectionMatcher + '|' + simpleSectionMatcher + '|' + matchOpenTag + '\\s*(@?[\\w\\.]+)\\s*' + matchCloseTag, 'g');
 
@@ -185,51 +186,6 @@ function Easybars() {
                 var n;
 
                 if (record.toTemplate && recordVal) {
-
-                    // separate overgrouped sections
-                    //   (this allows for both nested and sibling sections)
-                    if (recordSectionType) {
-                        var orphanedClosingTag = sectionTagCloseStart + recordSectionType + sectionTagEnd;
-                        var orphanedOpeningTag = sectionTagOpenStart + recordSectionType + ' ';
-                        var orphanedOpeningTagRegExp = orphanedOpeningTag + '.+?' + sectionTagEnd;
-                        var indexOfOpenerStop = recordVal.indexOf(sectionTagEnd) + 2;
-                        var val = recordVal.substr(indexOfOpenerStop);
-                        var hasOrphanedOpeningTag = val.indexOf(orphanedClosingTag) < val.indexOf(orphanedOpeningTag);
-                        var hasOrphanedClosingTag = val.lastIndexOf(orphanedClosingTag) < val.lastIndexOf(orphanedOpeningTag);
-                        if (hasOrphanedOpeningTag && hasOrphanedClosingTag) {
-                            var pre = '';
-                            var post = '';
-                            var s = val.split(orphanedClosingTag);
-                            if (s.length > 1) {
-                                pre = sectionTagOpenStart + recordVal.substr(0, indexOfOpenerStop) + s.shift() + orphanedClosingTag;
-                                val = s.join(orphanedClosingTag);
-                            }
-                            var actualSectionTagClose = val.match(new RegExp(orphanedOpeningTagRegExp, 'g')).pop();
-                            s = val.split(actualSectionTagClose);
-                            if (s.length > 1) {
-                                post = actualSectionTagClose + s.pop() + orphanedClosingTag;
-                                val = s.join(actualSectionTagClose);
-                            }
-
-                            var foundPre = pre.split(findTags);
-                            each(foundPre, function (f, ndx) {
-                                processRecord(foundPre, ndx);
-                            });
-
-                            var foundVal = val.split(findTags);
-                            each(foundVal, function (f, ndx) {
-                                processRecord(foundVal, ndx);
-                            });
-
-                            var foundPost = post.split(findTags);
-                            each(foundPost, function (f, ndx) {
-                                processRecord(foundPost, ndx);
-                            });
-
-                            return; // stop adding of bad record
-                        }
-                    }
-
                     if (record.isContent) {
                         n = template.push(recordVal);
                     } else {
@@ -357,13 +313,32 @@ function Easybars() {
 
             return function (data) {
                 replaceVars(data);
-                for (var s = 0, sLen = sections.length; s < sLen; s++) {
-                    var section = sections[s];
-                    var command = section.value.split(sectionTagEnd);
-                    var commandTerms = command.shift().split(' ');
-                    var commandBody = command.join(sectionTagEnd);
-                    addSectionsToTemplate(section, commandTerms, commandBody, data);
-                }
+                each(sections, function (section) {
+                    var exactOpenTag = sectionTagOpenStart + section.type + ' ';
+                    var exactCloseTag = sectionTagCloseStart + section.type + sectionTagEnd;
+                    var subGroups = section.value.split(exactCloseTag);
+                    if (subGroups.length > 1) {
+                        if (section.type !== 'if') { throw new Error('EasybarsError: Nested ' + section.type + ' helpers are currently not supported at\n' + section.value); }
+                        var carryover = '';
+                        each(subGroups, function (sub) {
+                            var splitOnOpen = (carryover + sub).split(new RegExp(exactOpenTag));
+                            if (splitOnOpen.length > 1) {
+                                var deepestNest = exactOpenTag + splitOnOpen.pop() + exactCloseTag;
+                                var subTemplate = new Easybars(options).compile(deepestNest, components)(data);
+                                carryover = splitOnOpen.join(exactOpenTag) + subTemplate;
+                            } else {
+                                carryover = splitOnOpen[0];
+                            }
+                        });
+                        template[section.index] = carryover;
+
+                    } else {
+                        var command = section.value.split(sectionTagEnd);
+                        var commandTerms = command.shift().split(' ');
+                        var commandBody = command.join(sectionTagEnd);
+                        addSectionsToTemplate(section, commandTerms, commandBody, data);
+                    }
+                });
                 var output = template.join('');
                 return options.collapse ? output.replace(/[\s\t\r\n\f]+/g, ' ') : output;
             };

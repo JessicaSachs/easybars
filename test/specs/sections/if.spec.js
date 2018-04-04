@@ -95,8 +95,14 @@ describe('#if', function () {
         output = Easybars('{{#if go}}-{{food}}-{{/if}}-{{#if !go}}dog{{/if}}-{{#if go}}-{{food}}-{{/if}}', data);
         expect(output).toBe('-bun----bun-', 4);
 
-        output = Easybars('{{#if !go}}-{{food}}-{{/if}}-{{#if !go}}dog{{/if}}-{{#if !go}}-{{food}}-{{/if}}', data);
-        expect(output).toBe('--', 5);
+        output = Easybars('{{#if !go}}0{{food}}1{{/if}}2{{#if !go}}dog{{/if}}3{{#if !go}}4{{food}}5{{/if}}', data);
+        expect(output).toBe('23', 5);
+
+        output = Easybars('0{{#if go}}1{{#if go}}{{food}}{{/if}}2{{/if}}3{{#if go}}{{food}}{{/if}}4', data);
+        expect(output).toBe('01bun23bun4', 6);
+
+        output = Easybars('0{{#if go}}1{{/if}}3{{/if}}4', data);
+        expect(output).toBe('0134', 7); // bogus closing tags are dropped
     });
 
 });

@@ -139,12 +139,12 @@ function getRecordModel(found, index, encodedTagStart) {
 }
 
 function lex(str, tokens) {
-    function makeToken(name, value, negated) {
-        tokens.push({
+    function makeToken(name, value, options) {
+        options = options || {};
+        tokens.push(extend({}, {
             name: name,
-            value: value,
-            negated: negated
-        });
+            value: value
+        }, options));
     }
 
     var tokenParser = new RegExp(/^(.*?){{(.*?)}}(.*)$/s);
@@ -174,7 +174,7 @@ function lex(str, tokens) {
                 value = value.replace(/!/g, '');
             }
 
-            makeToken(action, value, negated);
+            makeToken(action, value, { negated: negated });
             continue;
         }
 

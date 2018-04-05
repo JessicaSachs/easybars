@@ -163,17 +163,12 @@ function lex(str, tokens) {
             continue;
         }
 
-        var beginningParser = new RegExp(/^#(\S+)\s+(.*)$/);
+        var beginningParser = new RegExp(/^#(\S+)\s+(!?)(.*)$/);
         var beginningMatches = token.match(beginningParser);
         if (beginningMatches) {
-            var action = beginningMatches[1];
-            var value = beginningMatches[2];
-            var negated = value.indexOf('!') !== -1; // if there is a !, then it is negated.
-
-            if (negated) {
-                value = value.replace(/!/g, '');
-            }
-
+            var action  = beginningMatches[1];
+	    var negated = (beginningMatches[2] === '!')
+            var value   = beginningMatches[3];
             makeToken(action, value, { negated: negated });
             continue;
         }

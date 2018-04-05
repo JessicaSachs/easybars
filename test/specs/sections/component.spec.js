@@ -1,6 +1,6 @@
 var Easybars = require('../../../index');
 
-describe('#component', function () {
+xdescribe('#component', function () {
 
     describe('components can be easily inserted', function (expect) {
         var template = '<div>{{message}} {{#component headline}}</div>';

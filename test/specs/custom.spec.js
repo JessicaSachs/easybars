@@ -1,6 +1,6 @@
 var Easybars = require('../../index');
 
-describe('with custom settings', function () {
+xdescribe('with custom settings', function () {
 
     var easyDefault = new Easybars({
         collapse: true,

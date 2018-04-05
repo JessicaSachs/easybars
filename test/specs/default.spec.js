@@ -1,6 +1,6 @@
 var Easybars = require('../../index');
 
-describe('with default settings', function () {
+xdescribe('with default settings', function () {
 
     var easyDefault = new Easybars();
 

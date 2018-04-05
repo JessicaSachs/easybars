@@ -138,7 +138,93 @@ function getRecordModel(found, index, encodedTagStart) {
     return record;
 }
 
+function lex(str, tokens) {
+    function makeToken(name, value, negated) {
+        tokens.push([name, value, negated]);
+    }
 
+    var tokenParser = new RegExp(/^(.*?){{(.*?)}}(.*)$/s);
+    while (str.match(tokenParser)) {
+        var matches = str.match(tokenParser);
+        var prefix = matches[1];
+        var token = matches[2];
+        var rest = matches[3];
+        var str = rest;
+
+        if (prefix) {
+            makeToken('text', prefix);
+        }
+
+        if (!token) {
+            continue;
+        }
+
+        var beginningParser = new RegExp(/^#(\S+)\s+(.*)$/);
+        var beginningMatches = token.match(beginningParser);
+        if (beginningMatches) {
+            var action = beginningMatches[1];
+            var value = beginningMatches[2];
+            var negated = value.indexOf('!') !== -1; // if there is a !, then it is negated.
+
+            if (negated) {
+                value = value.replace(/!/g, '');
+            }
+
+            makeToken(action, value, negated);
+            continue;
+        }
+
+        var endParser = new RegExp(/^\/(\S+)$/);
+        var endMatches = token.match(endParser);
+        if (endMatches) {
+            var action = endMatches[1];
+            makeToken('end', action);
+            continue;
+
+        }
+        makeToken('interpolate', token);
+    }
+    if (str) {
+        makeToken('text', str);
+    }
+
+    return tokens;
+}
+
+function parseTokens(tokens, data) {
+    // we use op to ensure the end tag matches the open tag we're operating on.
+    var op = arguments[2];
+    var result = '';
+    var token;
+    while ((token = tokens.splice(0, 1)[0]) && token.length) {
+        var action = token[0];
+        var value = token[1];
+        var negated = token[2];
+
+        if (action === 'interpolate') {
+            var interpolatedVal = getPropertySafe(value, data);
+            result += interpolatedVal || '{{' + value + '}}';
+            continue;
+        } else if (action === 'if' && !negated) { // if
+            var consequent = parseTokens(tokens, data, action);
+            if (getPropertySafe(value, data)) {
+                result += consequent;
+            }
+            continue;
+        } else if (action === 'if' && negated) { // not if
+            var consequent = parseTokens(tokens, data, action);
+            var lookedUpVal = getPropertySafe(value, data);
+            if (!getPropertySafe(value, data)) {
+                result += consequent;
+            }
+            continue;
+        } else if (action === 'end') {
+            return value === op ? result : '';
+        }
+        result += value;
+    }
+    return result;
+}
 /**
  * Can be used in two ways:
  *   (1) new Easybars(options).compile(template, components)(data)
@@ -167,180 +253,9 @@ function Easybars() {
         var findTags = new RegExp(complexSectionMatcher + '|' + simpleSectionMatcher + '|' + matchOpenTag + '\\s*(@?[\\w\\.]+)\\s*' + matchCloseTag, 'g');
 
         this.compile = function (templateString, components) {
-            components = components || {};
-
-            var template = [];
-            var sections = [];
-            var varRefs = {};
-
-            var found = templateString.split(findTags);
-
-            each(found, function (f, i) {
-                processRecord(found, i);
-            });
-
-            function processRecord(recordArray, i) {
-                var record = getRecordModel(recordArray, i, encodedTagStart);
-                var recordVal = record.value;
-                var recordSectionType = record.sectionType;
-                var n;
-
-                if (record.toTemplate && recordVal) {
-                    if (record.isContent) {
-                        n = template.push(recordVal);
-                    } else {
-                        if (options.removeUnmatched) {
-                            n = template.push('');
-                        } else {
-                            if (record.isVarName) {
-                                if (record.encode) {
-                                    n = template.push(encodedTagStart + recordVal + encodedTagEnd);
-                                } else {
-                                    n = template.push(tagOpen + recordVal + tagClose);
-                                }
-                            } else {
-                                n = template.push(sectionTagOpenStart + recordVal + sectionTagCloseStart + recordSectionType + sectionTagEnd);
-                            }
-                        }
-                    }
-
-                    if (record.ref) {
-                        if (!Array.isArray(varRefs[record.ref])) {
-                            varRefs[record.ref] = [];
-                        }
-                        varRefs[record.ref].push({
-                            index: n - 1,
-                            encode: !!record.encode,
-                        });
-                    }
-
-                    if (recordSectionType) {
-                        sections.push({
-                            index: n - 1,
-                            type: recordSectionType,
-                            value: recordVal,
-                        });
-                    }
-                }
-            }
-
-            function replaceVars(data) {
-                Object.keys(varRefs).forEach(function (key) {
-                    var refs = varRefs[key];
-                    var value = getPropertySafe(key, data);
-                    if (typeof value !== 'undefined') {
-                        each(refs, function (ref) {
-                            if (ref.encode) {
-                                template[ref.index] = escapeChars(encodeChars(toString(value), options.encode), options.escape);
-                            } else {
-                                template[ref.index] = escapeChars(toString(value), options.escape);
-                            }
-                        });
-                    }
-                });
-            }
-
-            function addSectionsToTemplate(section, terms, body, data) {
-                var sectionType = section.type;
-                var sectionTemplate = [];
-
-                if (sectionType === 'each') {
-                    var value = getPropertySafe(terms.pop(), data);
-                    if (typeof value === 'object') {
-                        for (var x in value) {
-                            if (value.hasOwnProperty(x)) {
-                                var sectionData = value[x];
-                                if (typeof sectionData === 'object') {
-                                    sectionData['@key'] = x;
-                                } else {
-                                    sectionData = {
-                                        '@key': x,
-                                        '@value': sectionData,
-                                    };
-                                }
-                                var sectionResult = new Easybars(options).compile(body, components)(sectionData);
-                                sectionTemplate.push(sectionResult);
-                            }
-                        }
-                    }
-
-                } else if (sectionType === 'if') {
-                    var negated = false;
-                    var test = terms.pop();
-                    if (test.charAt(0) === '!') {
-                        negated = true;
-                        test = test.slice(1);
-                    }
-                    var value = getPropertySafe(test, data);
-                    if (negated ? !value: value) {
-                        var sectionResult = new Easybars(options).compile(body, components)(data);
-                        sectionTemplate.push(sectionResult);
-                    }
-
-                } else if (sectionType === 'for') {
-                    terms.shift();
-                    var sectionData = data[terms[1]] || [];
-                    var num = parseInt(terms[0], 10) || sectionData.length || 0;
-                    for (var t = 0; t < num; t++) {
-                        var sectionDataThis = sectionData[t];
-                        var sectionDataThisType = typeof sectionDataThis;
-                        if (sectionDataThisType !== 'undefined') {
-                            if (sectionDataThisType === 'object') {
-                                sectionDataThis['@index'] = t;
-                            } else {
-                                sectionDataThis = {
-                                    '@index': t,
-                                    '@value': sectionDataThis,
-                                };
-                            }
-                            var sectionResult = new Easybars(options).compile(body, components)(sectionDataThis);
-                            sectionTemplate.push(sectionResult);
-                        }
-                    }
-
-                } else if (sectionType === 'component') {
-                    var component = (terms[1] || '').split(':');
-                    var body = getPropertySafe(component[0], components);
-                    var sectionData = getPropertySafe(component[1] || component[0], data);
-                    if (body && sectionData) {
-                        var sectionResult = new Easybars(options).compile(body, components)(sectionData);
-                        sectionTemplate.push(sectionResult);
-                    }
-                }
-
-                template[section.index] = sectionTemplate.join('');
-            }
-
+            var tokens = lex(templateString, []);
             return function (data) {
-                replaceVars(data);
-                each(sections, function (section) {
-                    var exactOpenTag = sectionTagOpenStart + section.type + ' ';
-                    var exactCloseTag = sectionTagCloseStart + section.type + sectionTagEnd;
-                    var subGroups = section.value.split(exactCloseTag);
-                    if (subGroups.length > 1) {
-                        if (section.type !== 'if') { throw new Error('EasybarsError: Nested ' + section.type + ' helpers are currently not supported at\n' + section.value); }
-                        var carryover = '';
-                        each(subGroups, function (sub) {
-                            var splitOnOpen = (carryover + sub).split(new RegExp(exactOpenTag));
-                            if (splitOnOpen.length > 1) {
-                                var deepestNest = exactOpenTag + splitOnOpen.pop() + exactCloseTag;
-                                var subTemplate = new Easybars(options).compile(deepestNest, components)(data);
-                                carryover = splitOnOpen.join(exactOpenTag) + subTemplate;
-                            } else {
-                                carryover = splitOnOpen[0];
-                            }
-                        });
-                        template[section.index] = carryover;
-
-                    } else {
-                        var command = section.value.split(sectionTagEnd);
-                        var commandTerms = command.shift().split(' ');
-                        var commandBody = command.join(sectionTagEnd);
-                        addSectionsToTemplate(section, commandTerms, commandBody, data);
-                    }
-                });
-                var output = template.join('');
-                return options.collapse ? output.replace(/[\s\t\r\n\f]+/g, ' ') : output;
+                return parseTokens(tokens, data);
             };
         };
 

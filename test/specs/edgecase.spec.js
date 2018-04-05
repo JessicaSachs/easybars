@@ -1,6 +1,6 @@
 var Easybars = require('../../index');
 
-describe('protect against edge cases', function () {
+xdescribe('protect against edge cases', function () {
 
     describe('when the template string contains a "length" key', function (expect) {
         var str = '{{length}}';

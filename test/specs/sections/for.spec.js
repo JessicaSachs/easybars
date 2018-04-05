@@ -1,6 +1,6 @@
 var Easybars = require('../../../index');
 
-describe('#for', function () {
+xdescribe('#for', function () {
 
     describe('iterates n times over simple array', function (expect) {
         var output = Easybars('<ul>{{#for 2 fruits}}<li>{{@value}} is {{@index}}</li>{{/for}}</ul>', { fruits: ['apple', 'banana', 'kiwi'] });

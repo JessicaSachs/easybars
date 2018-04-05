@@ -69,10 +69,10 @@ describe('#if', function () {
         expect(output).toBe('<h3>Hello, fruit</h3>');
     });
 
-    describe('values are still encoded', function(expect) {
-        var output = Easybars('{{#if go}}<h3>{{{enc}}}:{{not}}</h3>{{/if}}', { go: true, enc: '<', not: '<' });
-        expect(output).toBe('<h3>&lt;:<</h3>');
-    });
+    // xdescribe('values are still encoded', function(expect) {
+    //     var output = Easybars('{{#if go}}<h3>{{{enc}}}:{{not}}</h3>{{/if}}', { go: true, enc: '<', not: '<' });
+    //     expect(output).toBe('<h3>&lt;:<</h3>');
+    // });
 
     describe('handles inverse', function(expect) {
         var tmp = '{{#if !go.home}}{{thing}}{{/if}}';

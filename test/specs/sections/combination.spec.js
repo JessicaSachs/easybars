@@ -1,6 +1,6 @@
 var Easybars = require('../../../index');
 
-describe('using multiple sections at the same time', function () {
+xdescribe('using multiple sections at the same time', function () {
 
     var data = {
         go: true,

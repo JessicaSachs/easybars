@@ -1,6 +1,6 @@
 var Easybars = require('../../../index');
 
-describe('#each', function () {
+xdescribe('#each', function () {
 
     describe('loops simple objects', function (expect) {
         var output = Easybars('<ul>{{#each fruits}}<li>{{@key}} is {{@value}}</li>{{/each}}</ul>', { fruits: { apple: 'red', banana: 'yellow' } });

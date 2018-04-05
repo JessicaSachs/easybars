@@ -174,6 +174,12 @@ function lex(str, tokens) {
             if (action === 'if') {
                 makeToken(action, actionArgs[0], { negated: specialChars === '!' });
             }
+
+            if (action === 'for') {
+                var count = !isNaN(actionArgs[0]) && parseInt(actionArgs[0]);
+                var collection = count ? actionArgs[1] : actionArgs[0];
+                makeToken(action, collection, { count: count });
+            }
             continue;
         }
 
@@ -202,30 +208,27 @@ function parseTokens(tokens, data) {
     while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
         var action = token.name;
         var value = token.value;
-        var negated = token.negated;
 
         if (action === 'interpolate') {
             var interpolatedVal = getPropertySafe(value, data);
             result += interpolatedVal || '{{' + value + '}}';
             continue;
         } 
-        
-       if (action === 'if' && !negated) { // if
+
+        if (action === 'if') {
             var consequent = parseTokens(tokens, data, action);
-            if (getPropertySafe(value, data)) {
+            var test = getPropertySafe(value, data);
+            var negated = token.negated;
+
+            var truthyNotIf = negated && !test;
+            var truthyIf = !negated && test;
+
+            if (truthyNotIf || truthyIf) {
                 result += consequent;
             }
             continue;
         }
-        
-        if (action === 'if' && negated) { // not if
-            var consequent = parseTokens(tokens, data, action);
-            if (!getPropertySafe(value, data)) {
-                result += consequent;
-            }
-            continue;
-        } 
-        
+
         if (action === 'end') {
             if (value === op) {
                 return result;

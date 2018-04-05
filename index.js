@@ -140,7 +140,11 @@ function getRecordModel(found, index, encodedTagStart) {
 
 function lex(str, tokens) {
     function makeToken(name, value, negated) {
-        tokens.push([name, value, negated]);
+        tokens.push({
+            name: name,
+            value: value,
+            negated: negated
+        });
     }
 
     var tokenParser = new RegExp(/^(.*?){{(.*?)}}(.*)$/s);
@@ -196,10 +200,10 @@ function parseTokens(tokens, data) {
     var op = arguments[2];
     var result = '';
     var token;
-    while ((token = tokens.splice(0, 1)[0]) && token.length) {
-        var action = token[0];
-        var value = token[1];
-        var negated = token[2];
+    while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
+        var action = token.name;
+        var value = token.value;
+        var negated = token.negated;
 
         if (action === 'interpolate') {
             var interpolatedVal = getPropertySafe(value, data);
@@ -217,7 +221,6 @@ function parseTokens(tokens, data) {
         
         if (action === 'if' && negated) { // not if
             var consequent = parseTokens(tokens, data, action);
-            var lookedUpVal = getPropertySafe(value, data);
             if (!getPropertySafe(value, data)) {
                 result += consequent;
             }

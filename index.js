@@ -167,12 +167,12 @@ function lex(str, tokens) {
         var beginningMatches = token.match(beginningParser);
         if (beginningMatches) {
             var action = beginningMatches[1];
-            var negated = beginningMatches[2];
+            var specialChars = beginningMatches[2];
             var value = beginningMatches[3];
 
             var actionArgs = value.split(new RegExp(/\s/));
             if (action === 'if') {
-                makeToken(action, actionArgs[0], { negated: negated });
+                makeToken(action, actionArgs[0], { negated: specialChars === '!' });
             }
             continue;
         }

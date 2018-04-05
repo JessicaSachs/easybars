@@ -22,4 +22,9 @@ xdescribe('#for', function () {
         expect(output).toBe('<ul><li>&lt;:<</li></ul>');
     });
 
+    describe('when no number is specified', function (expect) {
+        var output = Easybars('{{#for fruits}}{{name}}, {{/for}}', { fruits: [{ name: 'apple', }, { name: 'orange' }]});
+        expect(output).toBe('apple, orange, ');
+    });
+
 });

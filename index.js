@@ -220,10 +220,10 @@ function parseTokens(tokens, data) {
             var test = getPropertySafe(value, data);
             var negated = token.negated;
 
-            function truthyNotIf() { return negated && !test; }
-            function truthyIf() { return !negated && test; }
+            var truthyNotIf = negated && !test;
+            var truthyIf = !negated && test;
 
-            if (truthyNotIf() || truthyIf()) {
+            if (truthyNotIf || truthyIf) {
                 result += consequent;
             }
             continue;

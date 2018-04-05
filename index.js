@@ -148,12 +148,12 @@ function lex(str, tokens) {
     }
 
     var tokenParser = new RegExp(/^(.*?){{(.*?)}}(.*)$/s);
-    while (str.match(tokenParser)) {
-        var matches = str.match(tokenParser);
+    var matches;
+    while (matches = str.match(tokenParser)) {
         var prefix = matches[1];
         var token = matches[2];
         var rest = matches[3];
-        var str = rest;
+        str = rest;
 
         if (prefix) {
             makeToken('text', prefix);
@@ -166,10 +166,14 @@ function lex(str, tokens) {
         var beginningParser = new RegExp(/^#(\S+)\s+(!?)(.*)$/);
         var beginningMatches = token.match(beginningParser);
         if (beginningMatches) {
-            var action  = beginningMatches[1];
-	    var negated = (beginningMatches[2] === '!')
-            var value   = beginningMatches[3];
-            makeToken(action, value, { negated: negated });
+            var action = beginningMatches[1];
+            var negated = beginningMatches[2];
+            var value = beginningMatches[3];
+
+            var actionArgs = value.split(new RegExp(/\s/));
+            if (action === 'if') {
+                makeToken(action, actionArgs[0], { negated: negated });
+            }
             continue;
         }
 

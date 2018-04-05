@@ -205,22 +205,32 @@ function parseTokens(tokens, data) {
             var interpolatedVal = getPropertySafe(value, data);
             result += interpolatedVal || '{{' + value + '}}';
             continue;
-        } else if (action === 'if' && !negated) { // if
+        } 
+        
+       if (action === 'if' && !negated) { // if
             var consequent = parseTokens(tokens, data, action);
             if (getPropertySafe(value, data)) {
                 result += consequent;
             }
             continue;
-        } else if (action === 'if' && negated) { // not if
+        }
+        
+        if (action === 'if' && negated) { // not if
             var consequent = parseTokens(tokens, data, action);
             var lookedUpVal = getPropertySafe(value, data);
             if (!getPropertySafe(value, data)) {
                 result += consequent;
             }
             continue;
-        } else if (action === 'end') {
-            return value === op ? result : '';
+        } 
+        
+        if (action === 'end') {
+            if (value === op) {
+                return result;
+            }
+            continue;
         }
+        
         result += value;
     }
     return result;

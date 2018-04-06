@@ -178,8 +178,8 @@ function lex(string) {
     // param: predicate  The predicate of the if
     ////
     function makeIf(predicate) {
-	var negated = predicate.match(negateRE);
-	makeToken('if', negated[2], { negated: (negated[1] === '!') });
+        var negated = predicate.match(negateRE);
+        makeToken('if', negated[2], { negated: (negated[1] === '!') });
     }
 
     //////////////////////////////////////////////////////////////////
@@ -189,17 +189,17 @@ function lex(string) {
     // param:  collection  The collection over which to iterate
     ////
     function makeFor(count, collection) {
-	if (isNan(count)) {
-	    makeToken('for', count);
-	    return;
-	}
+        if (isNan(count)) {
+            makeToken('for', count);
+            return;
+        }
 
-        makeToken('for', name, { count: parseInt(count) });
+        makeToken('for', collection, { count: parseInt(count) });
     }
 
     // Map from action names to token generators.
     var actionLexers = {
-	if: makeIf,
+    	if: makeIf,
         for: makeFor,
     };
 
@@ -214,7 +214,7 @@ function lex(string) {
     // returns: The result of the handler
     ////
     function doMatch(text, matcher, handler) {
-	return handler.apply(null, text.match(matcher) || [text]);
+	    return handler.apply(null, text.match(matcher) || [text]);
     }
 
     //////////////////////////////////////////////////////////////////
@@ -226,20 +226,20 @@ function lex(string) {
     // param: parameters   Any parameters which are part of the action
     ////
     function lexAction(action, openOrClose, name, parameters) {
-	if (openOrClose === '#') {
-	    actionLexer = actionLexers[name];
-	    if (typeof actionLexer === 'function') {
-		actionLexer.apply(null, (parameters ? parameters.split(splitter) : []));
-	    }
-	    return;
-	}
+        if (openOrClose === '#') {
+            actionLexer = actionLexers[name];
+            if (typeof actionLexer === 'function') {
+                actionLexer.apply(null, (parameters ? parameters.split(splitter) : []));
+            }
+            return;
+        }
 
-	if (openOrClose === '/') {
-	    makeToken('end', name);
-	    return;
-	}
+        if (openOrClose === '/') {
+            makeToken('end', name);
+            return;
+        }
 
-	makeToken('interpolate', name);
+	    makeToken('interpolate', name);
     }
 
     //////////////////////////////////////////////////////////////////
@@ -255,7 +255,7 @@ function lex(string) {
     function handleMatchResult(all, prefix, token, suffix) {
 	if (token) {
 	    if (prefix) {
-		makeToken('text', prefix);
+		    makeToken('text', prefix);
 	    }
 	    doMatch(token, actionRE, lexAction);
 	} else {
@@ -267,7 +267,7 @@ function lex(string) {
     // iterate over the string, pulling off leading text and the first token untl there is
     // nothing left.
     while (string) {
-	string = doMatch(string, tokenRE, handleMatchResult);
+	    string = doMatch(string, tokenRE, handleMatchResult);
     }
 
     return tokens;
@@ -288,20 +288,20 @@ function parseTokens(tokens, data, enclosure, noResult) {
     var result = '';
     var token;
     const actions = {
-	interpolate: interpolate,
-	if: conditionalize,
-	end: end,
-	text: append,
+        interpolate: interpolate,
+        if: conditionalize,
+        end: end,
+        text: append,
     };
 
     while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
         if (actions[token.name]()) {
-	    return result;
-	}
+	        return result;
+	    }
 
-	if (noResult) {
-	    continue;
-	}
+	    if (noResult) {
+	        continue;
+	    }
     }
 
     return result;
@@ -313,21 +313,19 @@ function parseTokens(tokens, data, enclosure, noResult) {
     // return: Whether to stop parsing
     ////
     function interpolate() {
-	if (noResult) {
-	    return false;
-	}
+        if (noResult) {
+            return false;
+        }
 
-	var interpolated = getPropertySafe(token.value, data);
-	if (interpolated) {
-	    if (typeof interpolated === 'string') {
-		interpolated = parse(interpolated, data);
-	    }
-	} else {
-	    interpolated = '{{' + token.value + '}}';
-	}
-    
-	result += interpolated;
-	return false;
+        var interpolated = getPropertySafe(token.value, data);
+        if (interpolated && typeof interpolated === 'string') {
+            interpolated = parse(interpolated, data);
+        } else {
+            interpolated = '{{' + token.value + '}}';
+        }
+
+        result += interpolated;
+        return false;
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -340,9 +338,9 @@ function parseTokens(tokens, data, enclosure, noResult) {
     ////
     function conditionalize() {
         var test = getPropertySafe(token.value, data);
-	var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
-	result += parseTokens(tokens, data, token.name, noOutput);
-	return false;
+	    var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
+	    result += parseTokens(tokens, data, token.name, noOutput);
+	    return false;
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -352,7 +350,7 @@ function parseTokens(tokens, data, enclosure, noResult) {
     // return: Whether to stop parsing
     ////
     function end() {
-	return (token.value === enclosure);
+	    return (token.value === enclosure);
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -361,10 +359,10 @@ function parseTokens(tokens, data, enclosure, noResult) {
     // return: Whether to stop parsing
     ////
     function append() {
-	if (!noResult) {
-	    result += token.value;
-	}
-	return false;
+        if (!noResult) {
+            result += token.value;
+        }
+        return false;
     }
 }
 

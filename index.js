@@ -146,30 +146,27 @@ var splitter = new RegExp(/\s/);
 // Regex for the if-action parameter to check for negation
 var negateRE = new RegExp(/^(!?)(.*)$/);
 
-//////////////////////////////////////////////////////////////////////
-// Convert a string to a stream of tokens.
-//
-// param: string  The string to lex
-//
-// return: The stream of tokens as an array
-////
+/**
+ * Convert a string to a stream of tokens.
+ * @param {string} string - The string to lex
+ * @returns {Array} tokens - The stream of tokens as an array
+ */
 function lex(string) {
     // The token stream
     var tokens = [];
 
     // Map from action names to token generators.
     var actionLexers = {
-        if: makeIf,
         for: makeFor,
+        if: makeIf,
     };
 
-    //////////////////////////////////////////////////////////////////
-    // Add a token to the stream.
-    //
-    // param:  name     The name of the token (its type)
-    // param:  value    The value of the token
-    // oparam: options  A map of token specific parameters
-    ////
+    /**
+     * Add a token to the stream.
+     * @param {string} name - The name of the token (its type)
+     * @param {string} value - The value of the token
+     * @param {Object} [options] - An object containing token specific parameters
+     */
     function makeToken(name, value, options) {
         options = options || {};
         tokens.push(extend({}, {
@@ -178,54 +175,57 @@ function lex(string) {
         }, options));
     }
 
-    //////////////////////////////////////////////////////////////////
-    // Make an if-action token
-    //
-    // param: predicate  The predicate of the if
-    ////
+    /**
+     * Make an if-action token
+     * @param predicate - The predicate of the if
+     */
     function makeIf(predicate) {
         var negated = predicate.match(negateRE);
         makeToken('if', negated[2], { negated: (negated[1] === '!') });
     }
 
-    //////////////////////////////////////////////////////////////////
-    // Make a for-action token
-    //
-    // oparam: count       The iteration count
-    // param:  collection  The collection over which to iterate
-    ////
-    function makeFor(count, collection) {
-        if (isNan(count)) {
-            makeToken('for', count);
-            return;
-        }
+    /**
+     * Make a for-action token
+     * @oparam {number} count - The number of times to iterate over the collection.
+     * @oparam {Object} collection - The collection to be iterated over
+     */
+    function makeFor() {
+        var args = arguments;
+        var collection;
+        var count;
 
-        makeToken('for', collection, { count: parseInt(count) });
+        // if the first variable is not a number,
+        // then assume it is a collection and default to the whole length
+        if (isNan(args[0])) {
+            collection = args[0];
+            count = collection.length;
+        } else {
+            collection = args[1];
+            count = parseInt(args[0]);
+        }
+        makeToken('for', collection, { count: count });
     }
 
-    //////////////////////////////////////////////////////////////////
-    // Apply a regexp to a string then apply a handler to the match results if it matched,
-    // and to the original string if it did not.
-    //
-    // param: text     The string
-    // param: matcher  The regexp
-    // param: handler  The function to apply to the results of the match
-    //
-    // returns: The result of the handler
-    ////
+    /**
+     * Apply a regexp to a string then apply a handler to the match results if it matched,
+     * and to the original string if it did not.
+     * @param {string} text
+     * @param {RegExp} matcher
+     * @param {Function} handler - The function to apply to the results of the match
+     * @returns {*} The result of the handler
+     */
     function doMatch(text, matcher, handler) {
         var parameters = text.match(matcher) || [text];
         return handler.apply({}, parameters);
     }
 
-    //////////////////////////////////////////////////////////////////
-    // Interpret a single action which was delimited by {{ and }} and add it to the token stream.
-    //
-    // param: action       The entire contents of the {{}} (unused)
-    // param: openOrClose  The leading #, /, or nothing as appropriate
-    // param: name         The name of the action
-    // param: parameters   Any parameters which are part of the action
-    ////
+    /**
+     * Interpret a single action which was delimited by {{ and }} and add it to the token stream.
+     * @param action - The entire contents of the {{}} (unused)
+     * @param openOrClose - The leading #, /, or nothing as appropriate
+     * @param name - The name of the action
+     * @param parameters - Any parameters which are part of the action
+     */
     function lexAction(action, openOrClose, name, parameters) {
         parameters = parameters || [];
         if (openOrClose === '#') {
@@ -244,16 +244,14 @@ function lex(string) {
         makeToken('interpolate', name);
     }
 
-    //////////////////////////////////////////////////////////////////
-    // Handle the results of a single match attempt of the tokenizer.
-    //
-    // param: all     The entire string that was submitted to the regexp
-    // param: prefix  Any text preceding the first token
-    // param: token   The first token found
-    // param: suffix  Any text following the first token found
-    //
-    // returns: The suffix
-    ////
+    /**
+     * Handle the results of a single match attempt of the tokenizer.
+     * @param all - The entire string that was submitted to the regexp
+     * @param prefix - Any text preceding the first token
+     * @param {Object} token - The first token found
+     * @param {string} suffix - Any text following the first token found
+     * @returns {string} - The suffix
+     */
     function handleMatchResult(all, prefix, token, suffix) {
         if (token) {
             if (prefix) {
@@ -275,24 +273,21 @@ function lex(string) {
     return tokens;
 }
 
-//////////////////////////////////////////////////////////////////////
-// Parse a stream of tokens relative to a data object. Parsing will continue either until
-// an end token for the specified enclosure is reached, or there are no more tokens.
-//
-// param:  tokens     The stream of tokens
-// param:  data       The data object
-// oparam: enclosure  The enclosing action, if there is one
-// oparam: noResult   Don't return any text, just consume tokens
-//
-// returns: The parsed stream as a string
-////
+/**
+ * Parse a stream of tokens relative to a data object. Parsing will continue either until
+ * an end token for the specified enclosure is reached, or there are no more tokens.
+ * @param {Array} tokens - The stream of tokens
+ * @param {Object} [data] - The data object
+ * @param {string} [enclosure] - The enclosing action, if there is one
+ * @param {boolean} [noResult] - Don't return any text, just consume tokens
+ * @returns {string} The parsed stream as a string
+ */
 function parseTokens(tokens, data, enclosure, noResult) {
-    //////////////////////////////////////////////////////////////////
-    // Look up a the key from the current token in the data object and
-    // parse the result and append it to the the current parse result.
-    //
-    // return: Whether to stop parsing
-    ////
+    /**
+     * Look up a the key from the current token in the data object and
+     * parse the result and append it to the the current parse result.
+     * @returns {boolean} Whether to stop parsing
+     */
     function interpolate() {
         if (noResult) {
             return false;
@@ -309,14 +304,13 @@ function parseTokens(tokens, data, enclosure, noResult) {
         return false;
     }
 
-    //////////////////////////////////////////////////////////////////////
-    // Evaluate a conditional expression. The consequent will be
-    // parsed even if the predicate is false since the tokens need to
-    // be consumed, but multiple interpolation can be stopped. If the predicate is true,
-    // the parsed consequent will be appended to the current parse result.
-    //
-    // return: Whether to stop parsing
-    ////
+    /**
+     * Evaluate a conditional expression. The consequent will be
+     * parsed even if the predicate is false since the tokens need to
+     * be consumed, but multiple interpolation can be stopped. If the predicate is true,
+     * the parsed consequent will be appended to the current parse result.
+     * @returns {boolean} Whether to stop parsing
+     */
     function conditionalize() {
         var test = getPropertySafe(token.value, data);
         var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
@@ -324,21 +318,27 @@ function parseTokens(tokens, data, enclosure, noResult) {
         return false;
     }
 
-    //////////////////////////////////////////////////////////////////////
-    // Perform an end by signaling the end of parsing if it matches the enclosure and
-    // ignoring it otherwise.
-    //
-    // return: Whether to stop parsing
-    ////
+    /**
+     * Perform an end by signaling the end of parsing if it matches the enclosure and
+     * ignoring it otherwise.
+     * @returns {boolean} Whether to stop parsing
+     */
     function end() {
         return (token.value === enclosure);
     }
 
-    //////////////////////////////////////////////////////////////////////
-    // Append the value of the current token to the parse result.
-    //
-    // return: Whether to stop parsing
-    ////
+    /**
+     * Perform nested interpolation of the statement inside of the for loop
+     * @returns {boolean} Whether to stop parsing
+     */
+    function _for() {
+        return false;
+    }
+
+    /**
+     * Append the value of the current token to the parse result.
+     * @returns {boolean} Whether to stop parsing
+     */
     function append() {
         if (!noResult) {
             result += token.value;
@@ -349,9 +349,10 @@ function parseTokens(tokens, data, enclosure, noResult) {
     var result = '';
     var token;
     var actions = {
+        end: end,
+        for: _for,
         interpolate: interpolate,
         if: conditionalize,
-        end: end,
         text: append,
     };
 
@@ -365,14 +366,12 @@ function parseTokens(tokens, data, enclosure, noResult) {
 }
 
 
-//////////////////////////////////////////////////////////////////////
-// Parse a template string in reference to a supplied data object.
-//
-// param: string  The string to parse
-// param: data    The data object
-//
-// return: The interpolated string
-////
+/**
+ * Parse a template string in reference to a supplied data object.
+ * @param string - The string to parse
+ * @param data - The data object
+ * @returns {string} The interpolated string
+ */
 function parse(string, data) {
     return parseTokens(lex(string), data);
 }

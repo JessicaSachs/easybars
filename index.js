@@ -214,7 +214,8 @@ function lex(string) {
     // returns: The result of the handler
     ////
     function doMatch(text, matcher, handler) {
-        return handler.apply(null, text.match(matcher) || [text]);
+        var parameters = text.match(matcher) || [text];
+        return handler.apply({}, parameters);
     }
 
     //////////////////////////////////////////////////////////////////
@@ -226,10 +227,11 @@ function lex(string) {
     // param: parameters   Any parameters which are part of the action
     ////
     function lexAction(action, openOrClose, name, parameters) {
+        parameters = parameters || [];
         if (openOrClose === '#') {
             actionLexer = actionLexers[name];
             if (typeof actionLexer === 'function') {
-                actionLexer.apply(null, (parameters ? parameters.split(splitter) : []));
+                actionLexer.apply({}, parameters.split(splitter));
             }
             return;
         }

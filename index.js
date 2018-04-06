@@ -138,7 +138,33 @@ function getRecordModel(found, index, encodedTagStart) {
     return record;
 }
 
-function lex(str, tokens) {
+// The high-level tokenizer
+const tokenRE  = new RegExp(/^(.*?){{(.*?)}}(.*)$/s);
+// Regex for interpreting action tokens
+const actionRE = new RegExp(/^([#\/]?)(\S+)\s*(.*)$/);
+// Regex for splitting action parameters
+const splitter = new RegExp(/\s/);
+// Regex for the if-action parameter to check for negation
+const negateRE = new RegExp(/^(!?)(.*)$/);
+
+//////////////////////////////////////////////////////////////////////
+// Convert a string to a stream of tokens.
+//
+// param: string  The string to lex
+//
+// return: The stream of tokens as an array
+////
+function lex(string) {
+    // The token stream
+    var tokens = [];
+
+    //////////////////////////////////////////////////////////////////
+    // Add a token to the stream.
+    //
+    // param:  name     The name of the token (its type)
+    // param:  value    The value of the token
+    // oparam: options  A map of token specific parameters
+    ////
     function makeToken(name, value, options) {
         options = options || {};
         tokens.push(extend({}, {
@@ -147,54 +173,104 @@ function lex(str, tokens) {
         }, options));
     }
 
-    var tokenParser = new RegExp(/^(.*?){{(.*?)}}(.*)$/s);
-    var matches;
-    while (matches = str.match(tokenParser)) {
-        var prefix = matches[1];
-        var token = matches[2];
-        var rest = matches[3];
-        str = rest;
-
-        if (prefix) {
-            makeToken('text', prefix);
-        }
-
-        if (!token) {
-            continue;
-        }
-
-        var beginningParser = new RegExp(/^#(\S+)\s+(!?)(.*)$/);
-        var beginningMatches = token.match(beginningParser);
-        if (beginningMatches) {
-            var action = beginningMatches[1];
-            var specialChars = beginningMatches[2];
-            var value = beginningMatches[3];
-
-            var actionArgs = value.split(new RegExp(/\s/));
-            if (action === 'if') {
-                makeToken(action, actionArgs[0], { negated: specialChars === '!' });
-            }
-
-            if (action === 'for') {
-                var count = !isNaN(actionArgs[0]) && parseInt(actionArgs[0]);
-                var collection = count ? actionArgs[1] : actionArgs[0];
-                makeToken(action, collection, { count: count });
-            }
-            continue;
-        }
-
-        var endParser = new RegExp(/^\/(\S+)$/);
-        var endMatches = token.match(endParser);
-        if (endMatches) {
-            var action = endMatches[1];
-            makeToken('end', action);
-            continue;
-
-        }
-        makeToken('interpolate', token);
+    //////////////////////////////////////////////////////////////////
+    // Make an if-action token
+    //
+    // param: predicate  The predicate of the if
+    ////
+    function makeIf(predicate) {
+	var negated = predicate.match(negateRE);
+	makeToken('if', negated[2], { negated: (negated[1] === '!') });
     }
-    if (str) {
-        makeToken('text', str);
+
+    //////////////////////////////////////////////////////////////////
+    // Make a for-action token
+    //
+    // oparam: count       The iteration count
+    // param:  collection  The collection over which to iterate
+    ////
+    function makeFor(count, collection) {
+	if (isNan(count)) {
+	    makeToken('for', count);
+	    return;
+	}
+
+        makeToken('for', name, { count: parseInt(count) });
+    }
+
+    ////
+    // Map from action names to token generators.
+    ////
+    var actionLexers = {
+	if: makeIf,
+        for: makeFor,
+    };
+
+    //////////////////////////////////////////////////////////////////
+    // Apply a regexp to a string then apply a handler to the match results if it matched,
+    // and to the original string if it did not.
+    //
+    // param: text     The string
+    // param: matcher  The regexp
+    // param: handler  The function to apply to the results of the match
+    //
+    // returns: The result of the handler
+    ////
+    function doMatch(text, matcher, handler) {
+	return handler.apply(null, text.match(matcher) || [text]);
+    }
+
+    //////////////////////////////////////////////////////////////////
+    // Interpret a single action which was delimited by {{ and }} and add it to the token stream.
+    //
+    // param: action       The entire contents of the {{}} (unused)
+    // param: openOrClose  The leading #, /, or nothing as appropriate
+    // param: name         The name of the action
+    // param: parameters   Any parameters which are part of the action
+    ////
+    function lexAction(action, openOrClose, name, parameters) {
+	if (openOrClose === '#') {
+	    actionLexer = actionLexers[name];
+	    if (typeof actionLexer === 'function') {
+		actionLexer.apply(null, (parameters ? parameters.split(splitter) : []));
+	    }
+	    return;
+	}
+
+	if (openOrClose === '/') {
+	    makeToken('end', name);
+	    return;
+	}
+
+	makeToken('interpolate', name);
+    }
+
+    //////////////////////////////////////////////////////////////////
+    // Handle the results of a single match attempt of the tokenizer.
+    //
+    // param: all     The entire string that was submitted to the regexp
+    // param: prefix  Any text preceding the first token
+    // param: token   The first token found
+    // param: suffix  Any text following the first token found
+    //
+    // returns: The suffix
+    ////
+    function handleMatchResult(all, prefix, token, suffix) {
+	if (token) {
+	    if (prefix) {
+		makeToken('text', prefix);
+	    }
+	    doMatch(token, actionRE, lexAction);
+	} else {
+	    makeToken('text', all);
+	}
+	return suffix;
+    }
+
+    // iterate over the string, pulling off leading text and the first token untl there is
+    // nothing left.
+    while (string) {
+	string = doMatch(string, tokenRE, handleMatchResult);
     }
 
     return tokens;
@@ -268,7 +344,7 @@ function Easybars() {
         var findTags = new RegExp(complexSectionMatcher + '|' + simpleSectionMatcher + '|' + matchOpenTag + '\\s*(@?[\\w\\.]+)\\s*' + matchCloseTag, 'g');
 
         this.compile = function (templateString, components) {
-            var tokens = lex(templateString, []);
+            var tokens = lex(templateString);
             return function (data) {
                 return parseTokens(tokens, data);
             };

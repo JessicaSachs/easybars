@@ -157,6 +157,12 @@ function lex(string) {
     // The token stream
     var tokens = [];
 
+    // Map from action names to token generators.
+    var actionLexers = {
+        if: makeIf,
+        for: makeFor,
+    };
+
     //////////////////////////////////////////////////////////////////
     // Add a token to the stream.
     //
@@ -197,12 +203,6 @@ function lex(string) {
         makeToken('for', collection, { count: parseInt(count) });
     }
 
-    // Map from action names to token generators.
-    var actionLexers = {
-    	if: makeIf,
-        for: makeFor,
-    };
-
     //////////////////////////////////////////////////////////////////
     // Apply a regexp to a string then apply a handler to the match results if it matched,
     // and to the original string if it did not.
@@ -214,7 +214,7 @@ function lex(string) {
     // returns: The result of the handler
     ////
     function doMatch(text, matcher, handler) {
-	    return handler.apply(null, text.match(matcher) || [text]);
+        return handler.apply(null, text.match(matcher) || [text]);
     }
 
     //////////////////////////////////////////////////////////////////
@@ -239,7 +239,7 @@ function lex(string) {
             return;
         }
 
-	    makeToken('interpolate', name);
+        makeToken('interpolate', name);
     }
 
     //////////////////////////////////////////////////////////////////
@@ -253,15 +253,15 @@ function lex(string) {
     // returns: The suffix
     ////
     function handleMatchResult(all, prefix, token, suffix) {
-	if (token) {
-	    if (prefix) {
-		    makeToken('text', prefix);
-	    }
-	    doMatch(token, actionRE, lexAction);
-	} else {
-	    makeToken('text', all);
-	}
-	return suffix;
+        if (token) {
+            if (prefix) {
+                makeToken('text', prefix);
+            }
+            doMatch(token, actionRE, lexAction);
+        } else {
+            makeToken('text', all);
+        }
+        return suffix;
     }
 
     // iterate over the string, pulling off leading text and the first token untl there is
@@ -285,27 +285,6 @@ function lex(string) {
 // returns: The parsed stream as a string
 ////
 function parseTokens(tokens, data, enclosure, noResult) {
-    var result = '';
-    var token;
-    var actions = {
-        interpolate: interpolate,
-        if: conditionalize,
-        end: end,
-        text: append,
-    };
-
-    while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
-        if (actions[token.name]()) {
-	        return result;
-	    }
-
-	    if (noResult) {
-	        continue;
-	    }
-    }
-
-    return result;
-
     //////////////////////////////////////////////////////////////////
     // Look up a the key from the current token in the data object and
     // parse the result and append it to the the current parse result.
@@ -338,9 +317,9 @@ function parseTokens(tokens, data, enclosure, noResult) {
     ////
     function conditionalize() {
         var test = getPropertySafe(token.value, data);
-	    var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
-	    result += parseTokens(tokens, data, token.name, noOutput);
-	    return false;
+        var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
+        result += parseTokens(tokens, data, token.name, noOutput);
+        return false;
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -350,7 +329,7 @@ function parseTokens(tokens, data, enclosure, noResult) {
     // return: Whether to stop parsing
     ////
     function end() {
-	    return (token.value === enclosure);
+        return (token.value === enclosure);
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -364,6 +343,23 @@ function parseTokens(tokens, data, enclosure, noResult) {
         }
         return false;
     }
+
+    var result = '';
+    var token;
+    var actions = {
+        interpolate: interpolate,
+        if: conditionalize,
+        end: end,
+        text: append,
+    };
+
+    while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
+        if (actions[token.name]()) {
+	        return result;
+	    }
+    }
+
+    return result;
 }
 
 

@@ -138,13 +138,13 @@ function getRecordModel(found, index, encodedTagStart) {
 }
 
 // The high-level tokenizer
-const tokenRE  = new RegExp(/^(.*?){{(.*?)}}(.*)$/s);
+var tokenRE  = new RegExp(/^(.*?){{(.*?)}}(.*)$/s);
 // Regex for interpreting action tokens
-const actionRE = new RegExp(/^([#\/]?)(\S+)\s*(.*)$/);
+var actionRE = new RegExp(/^([#\/]?)(\S+)\s*(.*)$/);
 // Regex for splitting action parameters
-const splitter = new RegExp(/\s/);
+var splitter = new RegExp(/\s/);
 // Regex for the if-action parameter to check for negation
-const negateRE = new RegExp(/^(!?)(.*)$/);
+var negateRE = new RegExp(/^(!?)(.*)$/);
 
 //////////////////////////////////////////////////////////////////////
 // Convert a string to a stream of tokens.
@@ -287,7 +287,7 @@ function lex(string) {
 function parseTokens(tokens, data, enclosure, noResult) {
     var result = '';
     var token;
-    const actions = {
+    var actions = {
         interpolate: interpolate,
         if: conditionalize,
         end: end,

@@ -30,7 +30,6 @@ function each(collection, iteratee, thisArg) {
                     return;
                 }
             }
-
         } else {
             for (var prop in collection) {
                 if (hasProp.call(collection, prop)) {
@@ -198,9 +197,7 @@ function lex(string) {
         makeToken('for', name, { count: parseInt(count) });
     }
 
-    ////
     // Map from action names to token generators.
-    ////
     var actionLexers = {
 	if: makeIf,
         for: makeFor,
@@ -276,46 +273,114 @@ function lex(string) {
     return tokens;
 }
 
-function parseTokens(tokens, data) {
-    // we use op to ensure the end tag matches the open tag we're operating on.
-    var op = arguments[2];
+//////////////////////////////////////////////////////////////////////
+// Parse a stream of tokens relative to a data object. Parsing will continue either until
+// an end token for the specified enclosure is reached, or there are no more tokens.
+//
+// param:  tokens     The stream of tokens
+// param:  data       The data object
+// oparam: enclosure  The enclosing action, if there is one
+// oparam: noResult   Don't return any text, just consume tokens
+//
+// returns: The parsed stream as a string
+////
+function parseTokens(tokens, data, enclosure, noResult) {
     var result = '';
     var token;
+    const actions = {
+	interpolate: interpolate,
+	if: conditionalize,
+	end: end,
+	text: append,
+    };
+
     while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
-        var action = token.name;
-        var value = token.value;
+        if (actions[token.name]()) {
+	    return result;
+	}
 
-        if (action === 'interpolate') {
-            var interpolatedVal = getPropertySafe(value, data);
-            result += interpolatedVal || '{{' + value + '}}';
-            continue;
-        } 
-
-        if (action === 'if') {
-            var consequent = parseTokens(tokens, data, action);
-            var test = getPropertySafe(value, data);
-            var negated = token.negated;
-
-            var truthyNotIf = negated && !test;
-            var truthyIf = !negated && test;
-
-            if (truthyNotIf || truthyIf) {
-                result += consequent;
-            }
-            continue;
-        }
-
-        if (action === 'end') {
-            if (value === op) {
-                return result;
-            }
-            continue;
-        }
-        
-        result += value;
+	if (noResult) {
+	    continue;
+	}
     }
+
     return result;
+
+    //////////////////////////////////////////////////////////////////
+    // Look up a the key from the current token in the data object and
+    // parse the result and append it to the the current parse result.
+    //
+    // return: Whether to stop parsing
+    ////
+    function interpolate() {
+	if (noResult) {
+	    return false;
+	}
+
+	var interpolated = getPropertySafe(token.value, data);
+	if (interpolated) {
+	    if (typeof interpolated === 'string') {
+		interpolated = parse(interpolated, data);
+	    }
+	} else {
+	    interpolated = '{{' + token.value + '}}';
+	}
+    
+	result += interpolated;
+	return false;
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // Evaluate a conditional expression. The consequent will be
+    // parsed even if the predicate is false since the tokens need to
+    // be consumed, but multiple interpolation can be stopped. If the predicate is true,
+    // the parsed consequent will be appended to the current parse result.
+    //
+    // return: Whether to stop parsing
+    ////
+    function conditionalize() {
+        var test = getPropertySafe(token.value, data);
+	var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
+	result += parseTokens(tokens, data, token.name, noOutput);
+	return false;
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // Perform an end by signaling the end of parsing if it matches the enclosure and
+    // ignoring it otherwise.
+    //
+    // return: Whether to stop parsing
+    ////
+    function end() {
+	return (token.value === enclosure);
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // Append the value of the current token to the parse result.
+    //
+    // return: Whether to stop parsing
+    ////
+    function append() {
+	if (!noResult) {
+	    result += token.value;
+	}
+	return false;
+    }
 }
+
+
+//////////////////////////////////////////////////////////////////////
+// Parse a template string in reference to a supplied data object.
+//
+// param: string  The string to parse
+// param: data    The data object
+//
+// return: The interpolated string
+////
+function parse(string, data) {
+    return parseTokens(lex(string), data);
+}
+
 /**
  * Can be used in two ways:
  *   (1) new Easybars(options).compile(template, components)(data)
@@ -344,9 +409,8 @@ function Easybars() {
         var findTags = new RegExp(complexSectionMatcher + '|' + simpleSectionMatcher + '|' + matchOpenTag + '\\s*(@?[\\w\\.]+)\\s*' + matchCloseTag, 'g');
 
         this.compile = function (templateString, components) {
-            var tokens = lex(templateString);
             return function (data) {
-                return parseTokens(tokens, data);
+                return parse(templateString, data);
             };
         };
 

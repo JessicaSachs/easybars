@@ -275,163 +275,176 @@ function lex(string) {
 }
 
 /**
- * Parse a stream of tokens relative to a data object. Parsing will continue either until
- * an end token for the specified enclosure is reached, or there are no more tokens.
+ * Parse a template string in reference to a supplied data object.
  *
- * @param {Array} tokens - The stream of tokens
- * @param {Object} [data] - The data object
- * @param {string} [enclosure] - The enclosing action, if there is one
- * @param {boolean} [noResult] - Don't return any text, just consume tokens
+ * @param {string} string - The string to parse
+ * @param {Object} data   - The data object
  *
- * @returns {string} The parsed stream as a string
- */
-function parseTokens(tokens, data, enclosure, noResult) {
-    /**
-     * Look up a the key from the current token in the data object and
-     * parse the result and append it to the the current parse result.
-     * @returns {boolean} Whether to stop parsing
-     */
-    function interpolate() {
-        var d = token.data || data;
-        if (noResult) {
-            return false;
-        }
-
-        var interpolated = getPropertySafe(token.value, d);
-        if (interpolated && typeof interpolated === 'string') {
-            interpolated = parse(interpolated, d);
-        } else {
-            interpolated = '{{' + token.value + '}}';
-        }
-
-        result += interpolated;
-        return false;
-    }
+ * @returns {string} The interpolated string
+ **/
+function parse(string, data) {
+    return parseString(string, data);
 
     /**
-     * Evaluate a conditional expression. The consequent will be
-     * parsed even if the predicate is false since the tokens need to
-     * be consumed, but multiple interpolation can be stopped. If the predicate is true,
-     * the parsed consequent will be appended to the current parse result.
-     * @returns {boolean} Whether to stop parsing
-     */
-    function conditionalize() {
-        var d = token.data || data;
-        var test = getPropertySafe(token.value, d);
-        var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
-        result += parseTokens(tokens, d, token.name, noOutput);
-        return false;
-    }
-
-    /**
-     * Perform an end by signaling the end of parsing if it matches the enclosure and
-     * ignoring it otherwise.
-     * @returns {boolean} Whether to stop parsing
-     */
-    function end() {
-        return (token.value === enclosure);
-    }
-
-    /**
-     * Perform repeated interpolation of the statement inside a for loop.
+     * Parse a string relative to a data object.
      *
-     * @returns {boolean} Whether to stop parsing
-     */
-    function iterate() {
-	var forTokens = findForLoopBody(tokens);
-	if (noResult) {
-	    return false;
-	}
-
-        var list  = getPropertySafe(token.value, data);
-	var bound = list.length;
-	if (token.count) {
-	    bound = Math.min(bound, token.count);
-	}
-
-	for (var i = 0; i < bound; i++) {
-            var loopData = extend({}, data);
-	    loopData['@index'] = '' + i;
-	    loopData['@value'] = list[i];
-	    if (typeof list[i] === 'object') {
-		extend(loopData, list[i]);
-	    }
-	    result += parseTokens(extend([], forTokens), loopData);
-	}
-    }
-
-    /**
-     * Remove the body of a for loop from the token stream and return it as its own token stream.
+     * @param {string} string - The string to parse
+     * @param (Ojbect} data   - The data object
      *
-     * @oparam {boolean} nested - Whether this is a nested loop, in which case, the for and end
-     *                            tokens should be included in the returned stream
-     *
-     * @returns {Array} The body of the for loop
+     * @returns {string} The parsed string
      **/
-    function findForLoopBody(nested) {
-	var savedTokens = [];
-	var token;
-	while (token = tokens.splice(0, 1)[0]) {
-	    if (token.name === 'end') {
-		if (token.value === 'for') {
-		    if (nested) {
-			savedTokens.push(token);
-		    }
-		    return savedTokens;
-		}
-		continue;
-	    }
-
-	    if (token.name === 'for') {
-		savedTokens.push(token);
-		savedTokens.push.apply(savedTokens, findForLoopBody(tokens, true));
-		continue;
-	    }
-
-	    savedTokens.push(token);
-	}
-
-	return [];
+    function parseString(string, data) {
+	return parseTokens(lex(string), data);
     }
 
     /**
-     * Append the value of the current token to the parse result.
-     * @returns {boolean} Whether to stop parsing
+     * Parse a stream of tokens relative to a data object. Parsing will continue either until
+     * an end token for the specified enclosure is reached, or there are no more tokens.
+     *
+     * @param {Array} tokens - The stream of tokens
+     * @param {Object} [data] - The data object
+     * @param {string} [enclosure] - The enclosing action, if there is one
+     * @param {boolean} [noResult] - Don't return any text, just consume tokens
+     *
+     * @returns {string} The parsed stream as a string
      */
-    function append() {
-        if (!noResult) {
-            result += token.value;
-        }
-        return false;
-    }
+    function parseTokens(tokens, data, enclosure, noResult) {
+	/**
+	 * Look up a the key from the current token in the data object and
+	 * parse the result and append it to the the current parse result.
+	 * @returns {boolean} Whether to stop parsing
+	 */
+	function interpolate() {
+            if (noResult) {
+		return false;
+            }
 
-    var result = '';
-    var token;
-    var actions = {
-        end: end,
-        for: iterate,
-        interpolate: interpolate,
-        if: conditionalize,
-        text: append,
-    };
+            var interpolated = getPropertySafe(token.value, data);
+            if (interpolated && typeof interpolated === 'string') {
+		interpolated = parseString(interpolated, data);
+            } else {
+		interpolated = '{{' + token.value + '}}';
+            }
 
-    while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
-        if (actions[token.name]()) {
+            result += interpolated;
+            return false;
+	}
+
+	/**
+	 * Evaluate a conditional expression. The consequent will be
+	 * parsed even if the predicate is false since the tokens need to
+	 * be consumed, but multiple interpolation can be stopped. If the predicate is true,
+	 * the parsed consequent will be appended to the current parse result.
+	 * @returns {boolean} Whether to stop parsing
+	 */
+	function conditionalize() {
+            var test = getPropertySafe(token.value, data);
+            var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
+            result += parseTokens(tokens, data, token.name, noOutput);
+            return false;
+	}
+
+	/**
+	 * Perform an end by signaling the end of parsing if it matches the enclosure and
+	 * ignoring it otherwise.
+	 * @returns {boolean} Whether to stop parsing
+	 */
+	function end() {
+            return (token.value === enclosure);
+	}
+
+	/**
+	 * Perform repeated interpolation of the statement inside a for loop.
+	 *
+	 * @returns {boolean} Whether to stop parsing
+	 */
+	function iterate() {
+	    var forTokens = findForLoopBody(tokens);
+	    if (noResult) {
+		return false;
+	    }
+
+            var list  = getPropertySafe(token.value, data);
+	    var bound = list.length;
+	    if (token.count) {
+		bound = Math.min(bound, token.count);
+	    }
+
+	    for (var i = 0; i < bound; i++) {
+		var loopData = extend({}, data);
+		loopData['@index'] = '' + i;
+		loopData['@value'] = list[i];
+		if (typeof list[i] === 'object') {
+		    extend(loopData, list[i]);
+		}
+		result += parseTokens(extend([], forTokens), loopData);
+	    }
+	}
+
+	/**
+	 * Remove the body of a for loop from the token stream and
+	 * return it as its own token stream.
+	 *
+	 * @oparam {boolean} nested - Whether this is a nested loop, in which case, the for 
+         *                            and end tokens should be included in the returned stream
+	 *
+	 * @returns {Array} The body of the for loop
+	 **/
+	function findForLoopBody(nested) {
+	    var savedTokens = [];
+	    var token;
+	    while (token = tokens.splice(0, 1)[0]) {
+		if (token.name === 'end') {
+		    if (token.value === 'for') {
+			if (nested) {
+			    savedTokens.push(token);
+			}
+			return savedTokens;
+		    }
+		    continue;
+		}
+
+		if (token.name === 'for') {
+		    savedTokens.push(token);
+		    savedTokens.push.apply(savedTokens, findForLoopBody(tokens, true));
+		    continue;
+		}
+
+		savedTokens.push(token);
+	    }
+
+	    return [];
+	}
+
+	/**
+	 * Append the value of the current token to the parse result.
+	 * @returns {boolean} Whether to stop parsing
+	 */
+	function append() {
+            if (!noResult) {
+		result += token.value;
+            }
+            return false;
+	}
+
+	var result = '';
+	var token;
+	var actions = {
+            end: end,
+            for: iterate,
+            interpolate: interpolate,
+            if: conditionalize,
+            text: append,
+	};
+
+	while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
+            if (actions[token.name]()) {
 	        return result;
 	    }
+	}
+
+	return result;
     }
-
-    return result;
-}
-
-/**
- * Parse a template string in reference to a supplied data object.
- * @param string - The string to parse
- * @param data - The data object
- * @returns {string} The interpolated string
- */
-function parse(string, data) {
-    return parseTokens(lex(string), data);
 }
 
 /**

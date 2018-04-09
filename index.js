@@ -18,8 +18,7 @@ var defaultOptions = {
 
 var defaultTags = {
     raw: ['{{', '}}'],
-    encoded: ['{{{', '}}}'],
-    section: ['{{#', '{{/', '}}'],
+    encoded: ['{{{', '}}}']
 };
 
 function each(collection, iteratee, thisArg) {

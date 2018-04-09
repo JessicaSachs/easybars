@@ -138,9 +138,9 @@ function getRecordModel(found, index, encodedTagStart) {
 }
 
 // The high-level tokenizer
-var tokenRE  = new RegExp(/^(.*?){{({?.*?}*)}}(.*)$[\s\S]*/);
+var tokenRE  = new RegExp(/^([\s\S]*?){{({?[\s\S]*?}*)}}([\s\S]*)$/);
 // Regex for interpreting action tokens
-var actionRE = new RegExp(/^({?)([#\/]?)([^}\s]+)\s*(.*?)(}?)$/);
+var actionRE = new RegExp(/^({?)([#\/]?)([^}\s]+)\s*([\s\S]*?)(}?)$/);
 // Regex for splitting action parameters
 var splitter = new RegExp(/\s/);
 // Regex for the if-action parameter to check for negation

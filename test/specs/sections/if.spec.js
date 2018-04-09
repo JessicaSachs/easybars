@@ -31,6 +31,31 @@ describe('#if', function () {
         expect(output).toBe('<h3>Tree Fruits</h3>');
     });
 
+    describe('matches with prefix', function(expect) {
+        var output = Easybars('foo {{#if go}}<h3>Go!</h3>{{/if}}', { go: true });
+        expect(output).toBe('foo <h3>Go!</h3>');
+    });
+
+    describe('doesn\'t match with prefix', function(expect) {
+        var output = Easybars('foo\nbar\n{{#if !go}}<h3>Go!</h3>{{/if}}', { go: true });
+        expect(output).toBe('foo\nbar\n');
+    });
+
+    describe('matches with suffix', function(expect) {
+        var output = Easybars('{{#if go}}<h3>Go!</h3>{{/if}}foo\nbar', { go: true });
+        expect(output).toBe('<h3>Go!</h3>foo\nbar');
+    });
+
+    describe('doesn\'t match with suffix', function(expect) {
+        var output = Easybars('{{#if !go}}<h3>Go!</h3>{{/if}}foo\nbar', { go: true });
+        expect(output).toBe('foo\nbar');
+    });
+
+    describe('matches with prefix and suffix', function(expect) {
+        var output = Easybars('foo{{#if go}}<h3>Go!</h3>{{/if}}foo\nbar', { go: true });
+        expect(output).toBe('foo<h3>Go!</h3>foo\nbar');
+    });
+
     describe('doesn\'t match false', function (expect) {
         var output = Easybars('{{#if fruits}}<h3>Fruits</h3>{{/if}}', { fruits: false });
         expect(output).toBe('');

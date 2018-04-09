@@ -277,10 +277,12 @@ function lex(string) {
 /**
  * Parse a stream of tokens relative to a data object. Parsing will continue either until
  * an end token for the specified enclosure is reached, or there are no more tokens.
+ *
  * @param {Array} tokens - The stream of tokens
  * @param {Object} [data] - The data object
  * @param {string} [enclosure] - The enclosing action, if there is one
  * @param {boolean} [noResult] - Don't return any text, just consume tokens
+ *
  * @returns {string} The parsed stream as a string
  */
 function parseTokens(tokens, data, enclosure, noResult) {
@@ -331,40 +333,66 @@ function parseTokens(tokens, data, enclosure, noResult) {
     }
 
     /**
-     * Perform nested interpolation of the statement inside of the for loop
+     * Perform repeated interpolation of the statement inside a for loop.
+     *
      * @returns {boolean} Whether to stop parsing
      */
-    function _for() {
-        token.position = token.position || 0;
-        var endForIndex;
-        function findEnd(t) {
-            if (t.name === 'end' && t.value === 'for' && !endForIndex) {
-                endForIndex = tokens.indexOf(t);
-                console.log('endForIndex is', endForIndex)
-            }
-        }
+    function iterate() {
+	var forTokens = findForLoopBody(tokens);
+	console.log('iterate()', forTokens);
+	if (noResult) {
+	    return false;
+	}
 
-        var newTokens = [];
+        var list  = getPropertySafe(token.value, data);
+	var bound = list.length;
+	if (token.count) {
+	    bound = Math.min(bound, token.count);
+	}
 
-        if (token.position < token.count - 1) {
-            tokens.forEach(findEnd);
-            for (var i = 0; i <= endForIndex; i++) {
-                newTokens.push(tokens[i]);
-            }
-        }
+	for (var i = 0; i < bound; i++) {
+            var loopData = extend({}, data);
+	    loopData['@index'] = '' + i;
+	    loopData['@value'] = list[i];
+	    if (typeof list[i] === 'object') {
+		extend(loopData, list[i]);
+	    }
+	    result += parseTokens(extend([], forTokens), loopData);
+	}
+    }
 
-        token.position += 1;
+    /**
+     * Remove the body of a for loop from the token stream and return it as its own token stream.
+     *
+     * @oparam {boolean} nested - Whether this is a nested loop, in which case, the for and end
+     *                            tokens should be included in the returned stream
+     *
+     * @returns {Array} The body of the for loop
+     **/
+    function findForLoopBody(nested) {
+	var savedTokens = [];
+	var token;
+	while (token = tokens.splice(0, 1)[0]) {
+	    if (token.name === 'end') {
+		if (token.value === 'for') {
+		    if (nested) {
+			savedTokens.push(token);
+		    }
+		    return savedTokens;
+		}
+		continue;
+	    }
 
-        if (token.position < token.count) {
-            var d = token.data || data;
-            var obj = getPropertySafe(token.value, d)[token.position];
-            console.log('token position', token.position);
-            var loopProps = { '@index': '' + token.position, '@value': obj };
-            each(newTokens, function (t) { extend(t, { data: extend({}, obj, loopProps) })});
-            result += parseTokens(newTokens.length ? newTokens : tokens , d, true);
-        }
+	    if (token.name === 'for') {
+		savedTokens.push(token);
+		savedTokens.push.apply(savedTokens, findForTokens(tokens, true));
+		continue;
+	    }
 
-        return false;
+	    savedTokens.push(token);
+	}
+
+	return [];
     }
 
     /**
@@ -382,14 +410,13 @@ function parseTokens(tokens, data, enclosure, noResult) {
     var token;
     var actions = {
         end: end,
-        for: _for,
+        for: iterate,
         interpolate: interpolate,
         if: conditionalize,
         text: append,
     };
 
     while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
-        console.log('TOKEN NAME:', token.name, 'with data', token.data || data, 'and position', token.position);
         if (actions[token.name]()) {
 	        return result;
 	    }
@@ -397,7 +424,6 @@ function parseTokens(tokens, data, enclosure, noResult) {
 
     return result;
 }
-
 
 /**
  * Parse a template string in reference to a supplied data object.

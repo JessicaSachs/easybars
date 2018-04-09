@@ -1,4 +1,4 @@
-var consoleTable = require('console.table');
+require('console.table');
 
 var Easybars = require('../../index');
 var Handlebars = require('handlebars');
@@ -81,4 +81,4 @@ toTable.sort(function (a, b) {
     }
 });
 
-console.table(toTable);
+console.table(toTable); //eslint-disable-line

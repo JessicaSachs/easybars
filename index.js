@@ -138,13 +138,14 @@ function getRecordModel(found, index, encodedTagStart) {
 }
 
 // The high-level tokenizer
-var tokenRE  = new RegExp(/^(.*?){{(.*?)}}(.*)$/s);
+var tokenRE  = new RegExp(/^(.*?){{(.*?)}}(.*)$[\s\S]*/);
 // Regex for interpreting action tokens
 var actionRE = new RegExp(/^([#\/]?)(\S+)\s*(.*)$/);
 // Regex for splitting action parameters
 var splitter = new RegExp(/\s/);
 // Regex for the if-action parameter to check for negation
 var negateRE = new RegExp(/^(!?)(.*)$/);
+
 
 /**
  * Convert a string to a stream of tokens.
@@ -196,7 +197,7 @@ function lex(string) {
 
         // if the first variable is not a number,
         // then assume it is a collection and default to the whole length
-        if (isNan(args[0])) {
+        if (isNaN(args[0])) {
             collection = args[0];
             count = collection.length;
         } else {
@@ -289,13 +290,14 @@ function parseTokens(tokens, data, enclosure, noResult) {
      * @returns {boolean} Whether to stop parsing
      */
     function interpolate() {
+        var d = token.data || data;
         if (noResult) {
             return false;
         }
 
-        var interpolated = getPropertySafe(token.value, data);
+        var interpolated = getPropertySafe(token.value, d);
         if (interpolated && typeof interpolated === 'string') {
-            interpolated = parse(interpolated, data);
+            interpolated = parse(interpolated, d);
         } else {
             interpolated = '{{' + token.value + '}}';
         }
@@ -312,9 +314,10 @@ function parseTokens(tokens, data, enclosure, noResult) {
      * @returns {boolean} Whether to stop parsing
      */
     function conditionalize() {
-        var test = getPropertySafe(token.value, data);
+        var d = token.data || data;
+        var test = getPropertySafe(token.value, d);
         var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
-        result += parseTokens(tokens, data, token.name, noOutput);
+        result += parseTokens(tokens, d, token.name, noOutput);
         return false;
     }
 
@@ -332,6 +335,35 @@ function parseTokens(tokens, data, enclosure, noResult) {
      * @returns {boolean} Whether to stop parsing
      */
     function _for() {
+        token.position = token.position || 0;
+        var endForIndex;
+        function findEnd(t) {
+            if (t.name === 'end' && t.value === 'for' && !endForIndex) {
+                endForIndex = tokens.indexOf(t);
+                console.log('endForIndex is', endForIndex)
+            }
+        }
+
+        var newTokens = [];
+
+        if (token.position < token.count - 1) {
+            tokens.forEach(findEnd);
+            for (var i = 0; i <= endForIndex; i++) {
+                newTokens.push(tokens[i]);
+            }
+        }
+
+        token.position += 1;
+
+        if (token.position < token.count) {
+            var d = token.data || data;
+            var obj = getPropertySafe(token.value, d)[token.position];
+            console.log('token position', token.position);
+            var loopProps = { '@index': '' + token.position, '@value': obj };
+            each(newTokens, function (t) { extend(t, { data: extend({}, obj, loopProps) })});
+            result += parseTokens(newTokens.length ? newTokens : tokens , d, true);
+        }
+
         return false;
     }
 
@@ -357,6 +389,7 @@ function parseTokens(tokens, data, enclosure, noResult) {
     };
 
     while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
+        console.log('TOKEN NAME:', token.name, 'with data', token.data || data, 'and position', token.position);
         if (actions[token.name]()) {
 	        return result;
 	    }

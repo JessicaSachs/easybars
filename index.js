@@ -87,12 +87,13 @@ var splitter = new RegExp(/\s/);
 // Regex for the if-action parameter to check for negation
 var negateRE = new RegExp(/^(!?)(.*)$/);
 
-
 /**
  * Convert a string to a stream of tokens.
+ *
  * @param {string} string - The string to lex
+ *
  * @returns {Array} tokens - The stream of tokens as an array
- */
+ **/
 function lex(string) {
     // The token stream
     var tokens = [];
@@ -106,10 +107,11 @@ function lex(string) {
 
     /**
      * Add a token to the stream.
-     * @param {string} name - The name of the token (its type)
-     * @param {string} value - The value of the token
+     *
+     * @param {string} name      - The name of the token (its type)
+     * @param {string} value     - The value of the token
      * @param {Object} [options] - An object containing token specific parameters
-     */
+     **/
     function makeToken(name, value, options) {
         options = options || {};
         tokens.push(extend({}, {
@@ -120,6 +122,7 @@ function lex(string) {
 
     /**
      * Make an if-action token
+     *
      * @param predicate - The predicate of the if
      */
     function makeIf(predicate) {
@@ -129,8 +132,9 @@ function lex(string) {
 
     /**
      * Make a for-action token
-     * @oparam {number} count - The number of times to iterate over the collection.
-     * @oparam {Object} collection - The collection to be iterated over
+     *
+     * @param {number} count        - The number of times to iterate over the collection.
+     * @param {Object} [collection] - The collection to be iterated over
      */
     function makeFor() {
         var args = arguments;
@@ -151,6 +155,7 @@ function lex(string) {
 
     /**
      * Make an each-action token
+     *
      * @param {string} collection - The name of the collection to be iterated over
      */
     function makeEach(collection) {
@@ -160,9 +165,11 @@ function lex(string) {
     /**
      * Apply a regexp to a string then apply a handler to the match results if it matched,
      * and to the original string if it did not.
+     *
      * @param {string} text
      * @param {RegExp} matcher
      * @param {Function} handler - The function to apply to the results of the match
+     *
      * @returns {*} The result of the handler
      */
     function doMatch(text, matcher, handler) {
@@ -172,12 +179,13 @@ function lex(string) {
 
     /**
      * Interpret a single action which was delimited by {{ and }} and add it to the token stream.
-     * @param original      - The entire contents of the {{}} (unused)
-     * @param encodeOpen  - An encoding open brace if there was one
-     * @param openOrClose - The leading #, /, or nothing as appropriate
-     * @param name        - The name of the action
-     * @param parameters  - Any parameters which are part of the action
-     * @param encodeClose - An encoding close brace if there was one
+     *
+     * @param {string} original    - The entire contents of the {{}} (unused)
+     * @param {string} encodeOpen  - An encoding open brace if there was one
+     * @param {string} openOrClose - The leading #, /, or nothing as appropriate
+     * @param {string} name        - The name of the action
+     * @param {string} parameters  - Any parameters which are part of the action
+     * @param {string} encodeClose - An encoding close brace if there was one
      */
     function lexAction(original, encodeOpen, openOrClose, name, parameters, encodeClose) {
         parameters = parameters || [];
@@ -206,10 +214,11 @@ function lex(string) {
     /**
      * Handle the results of a single match attempt of the tokenizer.
      *
-     * @param {string} all         - The entire string that was submitted to the regexp
-     * @param {string} prefix      - Any text preceding the first token
-     * @param {string} token       - The first token found
-     * @param {string} suffix      - Any text following the first token found
+     * @param {string} all    - The entire string that was submitted to the regexp
+     * @param {string} prefix - Any text preceding the first token
+     * @param {string} token  - The first token found
+     * @param {string} suffix - Any text following the first token found
+     *
      * @returns {string} - The suffix
      */
     function handleMatchResult(all, prefix, tokenLeftBraces, token, tokenRightBraces, suffix) {
@@ -244,21 +253,18 @@ function lex(string) {
  * @param {string} string  - The string to parse
  * @param {Object} data    - The data object
  * @param {Object} options - Configuration options
+ *
  * @returns {string} The interpolated string
  **/
 function parse(string, data, options) {
     return parseString(string, data)
-    // console.log('before escaping', parsed);
-    // console.log('options.escape is', options.escape)
-    // var escaped =
-    // console.log('after escaping', escaped);
-    // return escaped;
 
     /**
      * Parse a string relative to a data object.
      *
      * @param {string} string - The string to parse
      * @param (Ojbect} data   - The data object
+     *
      * @returns {string} The parsed string
      **/
     function parseString(string, data) {
@@ -269,16 +275,18 @@ function parse(string, data, options) {
      * Parse a stream of tokens relative to a data object. Parsing will continue either until
      * an end token for the specified enclosure is reached, or there are no more tokens.
      *
-     * @param {Array} tokens - The stream of tokens
-     * @param {Object} [data] - The data object
+     * @param {Array} tokens       - The stream of tokens
+     * @param {Object} [data]      - The data object
      * @param {string} [enclosure] - The enclosing action, if there is one
      * @param {boolean} [noResult] - Don't return any text, just consume tokens
+     *
      * @returns {string} The parsed stream as a string
      */
     function parseTokens(tokens, data, enclosure, noResult) {
         /**
          * Look up a the key from the current token in the data object and
          * parse the result and append it to the the current parse result.
+         *
          * @returns {boolean} Whether to stop parsing
          */
         function interpolate() {
@@ -317,6 +325,7 @@ function parse(string, data, options) {
          * parsed even if the predicate is false since the tokens need to
          * be consumed, but multiple interpolation can be stopped. If the predicate is true,
          * the parsed consequent will be appended to the current parse result.
+         *
          * @returns {boolean} Whether to stop parsing
          */
         function conditionalize() {
@@ -329,6 +338,7 @@ function parse(string, data, options) {
         /**
          * Perform an end by signaling the end of parsing if it matches the enclosure and
          * ignoring it otherwise.
+         *
          * @returns {boolean} Whether to stop parsing
          */
         function end() {
@@ -337,6 +347,7 @@ function parse(string, data, options) {
 
         /**
          * Perform repeated interpolation of the statement inside a for loop.
+         *
          * @returns {boolean} Whether to stop parsing
          */
         function iterate() {
@@ -366,6 +377,7 @@ function parse(string, data, options) {
 
         /**
          * Perform repeated interpolation of the statement inside an each loop.
+         *
          * @returns {boolean} Whether to stop parsing
          */
         function map() {
@@ -393,9 +405,10 @@ function parse(string, data, options) {
         /**
          * Remove the body of a loop from the token stream and return it as its own token stream.
          *
-         * @param {string} loop   - What type of loop this is (used to match the end token)
+         * @param {string} loop      - What type of loop this is (used to match the end token)
          * @param {boolean} [nested] - Whether this is a nested loop, in which case, the start
-         * and end tokens should be included in the returned stream
+         *                             and end tokens should be included in the returned stream
+         *
          * @returns {Array} The body of the for loop
          **/
         function findLoopBody(loop, nested) {

@@ -27,7 +27,7 @@ describe('with custom settings', function () {
     describe('custom encodings and escaping work', function(expect) {
         var render = easyDefault.compile('<div class="{{{foo}}}">{{bar}} foo\n</div>');
         var output = render({ foo: 'hello!', bar: 'world' });
-        expect(output).toBe('<div class="hello0">world foo </div>');
+        expect(output).toBe('<div class="hello0">world foo</div>');
     });
 
     xdescribe('custom tags are respected, line breaks are compressed', function (expect) {

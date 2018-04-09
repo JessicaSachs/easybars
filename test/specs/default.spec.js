@@ -10,13 +10,13 @@ describe('with default settings', function () {
         expect(output).toBe('<div class="hello">world   foo\n0</div>');
     });
 
-    xdescribe('only valid tags are replaced, can use dot notation', function (expect) {
+    describe('only valid tags are replaced, can use dot notation', function (expect) {
         var render = easyDefault.compile('<div class="{{{{foo}}}}">{{zoo.animal.zebra}} {foo} {{foo}}</div>');
         var output = render({ foo: 'hello', zoo: { animal: { zebra: 2, lion: 1 } } });
         expect(output).toBe('<div class="{hello}">2 {foo} hello</div>');
     });
 
-    xdescribe('html chars are encoded when special tag is used', function (expect) {
+    describe('html chars are encoded when special tag is used', function (expect) {
         var render = easyDefault.compile('<div class="{{{foo}}}">{{bar}} {{elem}}</div>');
         var output = render({ foo: '<>&<>', bar: '"!@#$%^*()-+=', elem: '<a href="#">link</a>' });
         expect(output).toBe('<div class="&lt;&gt;&amp;&lt;&gt;">"!@#$%^*()-+= <a href="#">link</a></div>');
@@ -28,7 +28,7 @@ describe('with default settings', function () {
         expect(output).toBe('This amazing {{{var1}}} {{var2}} should still be here');
     });
 
-    xdescribe('works as just a one-off method', function (expect) {
+    describe('works as just a one-off method', function (expect) {
         expect(Easybars('{{name}} says hello\n{{name}}!', { name: 'Bob' }, { collapse: true })).toBe('Bob says hello Bob!');
     });
 

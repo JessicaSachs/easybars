@@ -158,6 +158,7 @@ function lex(string) {
 
     // Map from action names to token generators.
     var actionLexers = {
+	each: makeEach,
         for: makeFor,
         if: makeIf,
     };
@@ -205,6 +206,15 @@ function lex(string) {
             count = parseInt(args[0]);
         }
         makeToken('for', collection, { count: count });
+    }
+
+    /**
+     * Make an each-action token
+     *
+     * @param {string} collection - The name of the collection to be iterated over
+     */
+    function makeEach(collection) {
+        makeToken('each', collection);
     }
 
     /**
@@ -370,7 +380,7 @@ function parse(string, data, options) {
 	 * @returns {boolean} Whether to stop parsing
 	 */
 	function iterate() {
-	    var forTokens = findForLoopBody(tokens);
+	    var forTokens = findLoopBody(token.name);
 	    if (noResult) {
 		return false;
 	    }
@@ -390,23 +400,52 @@ function parse(string, data, options) {
 		}
 		result += parseTokens(extend([], forTokens), loopData);
 	    }
+
+	    return false;
 	}
 
 	/**
-	 * Remove the body of a for loop from the token stream and
-	 * return it as its own token stream.
+	 * Perform repeated interpolation of the statement inside an each loop.
 	 *
-	 * @oparam {boolean} nested - Whether this is a nested loop, in which case, the for 
+	 * @returns {boolean} Whether to stop parsing
+	 */
+	function map() {
+	    var eachTokens = findLoopBody(token.name);
+	    if (noResult) {
+		return false;
+	    }
+
+            var list = getPropertySafe(token.value, data);
+	    for (var key in list) {
+		if (list.hasOwnProperty(key)) {
+		    var loopData = extend({}, data);
+		    loopData['@key'] = key;
+		    var value        = loopData['@value'] = list[key];
+		    if (typeof value === 'object') {
+			extend(loopData, value);
+		    }
+		    result += parseTokens(extend([], eachTokens), loopData);
+		}
+	    }
+
+	    return false;
+	}
+
+	/**
+	 * Remove the body of a loop from the token stream and return it as its own token stream.
+	 *
+         * @param  {string}  loop   - What type of loop this is (used to match the end token)
+	 * @oparam {boolean} nested - Whether this is a nested loop, in which case, the start 
          *                            and end tokens should be included in the returned stream
 	 *
 	 * @returns {Array} The body of the for loop
 	 **/
-	function findForLoopBody(nested) {
+	function findLoopBody(loop, nested) {
 	    var savedTokens = [];
 	    var token;
 	    while (token = tokens.splice(0, 1)[0]) {
 		if (token.name === 'end') {
-		    if (token.value === 'for') {
+		    if (token.value === loop) {
 			if (nested) {
 			    savedTokens.push(token);
 			}
@@ -415,13 +454,12 @@ function parse(string, data, options) {
 		    continue;
 		}
 
-		if (token.name === 'for') {
-		    savedTokens.push(token);
-		    savedTokens.push.apply(savedTokens, findForLoopBody(tokens, true));
+		savedTokens.push(token);
+
+		if ((token.name === 'for') || (token.name === 'each')) {
+		    savedTokens.push.apply(savedTokens, findLoopBody(token.name, true));
 		    continue;
 		}
-
-		savedTokens.push(token);
 	    }
 
 	    return [];
@@ -441,6 +479,7 @@ function parse(string, data, options) {
 	var result = '';
 	var token;
 	var actions = {
+	    each: map,
             end: end,
             for: iterate,
             interpolate: interpolate,

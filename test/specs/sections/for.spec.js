@@ -22,11 +22,11 @@ describe('#for', function () {
 	expect(output).toBe('<ul><li>apple is 0</li><li>banana is 1</li></ul>');
     });
     
-    //describe('values are still encoded', function (expect) {
-    //     var output = Easybars('<ul>{{#for 1 fruits}}<li>{{{enc}}}:{{not}}</li>{{/for}}</ul>', { fruits: [{ enc: '<', not: '<' }] });
-    //     expect(output).toBe('<ul><li>&lt;:<</li></ul>');
-    // });
-    //
+    describe('values are still encoded', function (expect) {
+        var output = Easybars('<ul>{{#for 1 fruits}}<li>{{{enc}}}:{{not}}</li>{{/for}}</ul>', { fruits: [{ enc: '<', not: '<' }] });
+        expect(output).toBe('<ul><li>&lt;:<</li></ul>');
+    });
+    
     describe('when no number is specified', function (expect) {
         var output = Easybars('{{#for fruits}}{{name}}, {{/for}}', { fruits: [{ name: 'apple', }, { name: 'orange' }]});
         expect(output).toBe('apple, orange, ');

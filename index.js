@@ -138,9 +138,9 @@ function getRecordModel(found, index, encodedTagStart) {
 }
 
 // The high-level tokenizer
-var tokenRE  = new RegExp(/^(.*?){{(.*?)}}(.*)$[\s\S]*/);
+var tokenRE  = new RegExp(/^(.*?){{({?.*?}*)}}(.*)$[\s\S]*/);
 // Regex for interpreting action tokens
-var actionRE = new RegExp(/^([#\/]?)(\S+)\s*(.*)$/);
+var actionRE = new RegExp(/^({?)([#\/]?)([^}\s]+)\s*(.*?)(}?)$/);
 // Regex for splitting action parameters
 var splitter = new RegExp(/\s/);
 // Regex for the if-action parameter to check for negation
@@ -222,12 +222,15 @@ function lex(string) {
 
     /**
      * Interpret a single action which was delimited by {{ and }} and add it to the token stream.
-     * @param action - The entire contents of the {{}} (unused)
+     *
+     * @param action      - The entire contents of the {{}} (unused)
+     * @param encodeOpen  - An encoding open brace if there was one
      * @param openOrClose - The leading #, /, or nothing as appropriate
-     * @param name - The name of the action
-     * @param parameters - Any parameters which are part of the action
+     * @param name        - The name of the action
+     * @param parameters  - Any parameters which are part of the action
+     * @param encodeClose - An encoding close brace if there was one
      */
-    function lexAction(action, openOrClose, name, parameters) {
+    function lexAction(action, encodeOpen, openOrClose, name, parameters, encodeClose) {
         parameters = parameters || [];
         if (openOrClose === '#') {
             actionLexer = actionLexers[name];
@@ -242,15 +245,20 @@ function lex(string) {
             return;
         }
 
-        makeToken('interpolate', name);
+        makeToken('interpolate', name,
+		  { encode: ((encodeOpen === '{') && (encodeClose === '}')) ,
+		    original: action,
+		  });
     }
 
     /**
      * Handle the results of a single match attempt of the tokenizer.
-     * @param all - The entire string that was submitted to the regexp
-     * @param prefix - Any text preceding the first token
-     * @param {Object} token - The first token found
-     * @param {string} suffix - Any text following the first token found
+     *
+     * @param {string} all         - The entire string that was submitted to the regexp
+     * @param {string} prefix      - Any text preceding the first token
+     * @param {string} token       - The first token found
+     * @param {string} suffix      - Any text following the first token found
+     *
      * @returns {string} - The suffix
      */
     function handleMatchResult(all, prefix, token, suffix) {
@@ -277,13 +285,13 @@ function lex(string) {
 /**
  * Parse a template string in reference to a supplied data object.
  *
- * @param {string} string - The string to parse
- * @param {Object} data   - The data object
- *
+ * @param {string} string  - The string to parse
+ * @param {Object} data    - The data object
+ * @param {Object} options - Configuration options
  * @returns {string} The interpolated string
  **/
-function parse(string, data) {
-    return parseString(string, data);
+function parse(string, data, options) {
+    return escapeChars(parseString(string, data), options.escape);
 
     /**
      * Parse a string relative to a data object.
@@ -323,9 +331,12 @@ function parse(string, data) {
             if (interpolated && typeof interpolated === 'string') {
 		interpolated = parseString(interpolated, data);
             } else {
-		interpolated = '{{' + token.value + '}}';
+		interpolated = '{{' + token.original + '}}';
             }
 
+	    if (token.encode) {
+		interpolated = encodeChars(interpolated, options.encode);
+	    }
             result += interpolated;
             return false;
 	}
@@ -476,7 +487,7 @@ function Easybars() {
 
         this.compile = function (templateString, components) {
             return function (data) {
-                return parse(templateString, data);
+                return parse(templateString, data, options);
             };
         };
 

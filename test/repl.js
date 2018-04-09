@@ -1,7 +1,7 @@
-const Easybars = require('../index.js');
-const repl = require('repl');
+var Easybars = require('../index.js');
+var repl = require('repl');
 
-const r = repl.start('> ');
+var r = repl.start('> ');
 
 r.context.Easybars = Easybars;
 r.context.easybars = Easybars;

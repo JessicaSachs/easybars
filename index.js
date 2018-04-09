@@ -17,9 +17,9 @@ var defaultOptions = {
 };
 
 var defaultTags = {
-    raw: ['{{','}}'],
-    encoded: ['{{{','}}}'],
-    section: ['{{#','{{/','}}'],
+    raw: ['{{', '}}'],
+    encoded: ['{{{', '}}}'],
+    section: ['{{#', '{{/', '}}'],
 };
 
 function each(collection, iteratee, thisArg) {
@@ -58,15 +58,11 @@ function escapeChars(str, escape) {
     return str;
 }
 
-function escapeRegExp(str) {
-    return str.replace(/[\/\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
-}
-
 function extend() {
     var ret = arguments[0];
 
-    each(arrSlice.call(arguments, 1), function(ext) {
-        each(ext, function(val, key) {
+    each(arrSlice.call(arguments, 1), function (ext) {
+        each(ext, function (val, key) {
             if (typeof val !== 'undefined') {
                 ret[key] = val;
             }
@@ -77,13 +73,15 @@ function extend() {
 }
 
 function getPropertySafe(key, data) {
-    return key.split('.').reduce(function index(obj,i) {return obj && obj[i]}, data);
+    return key.split('.').reduce(function index(obj, i) {
+        return obj && obj[i]
+    }, data);
 }
 
 // The high-level tokenizer
-var tokenRE  = new RegExp(/^([\s\S]*?)({{2,})([\s\S]*?)(}{2,})([\s\S]*)$/);
+var tokenRE = new RegExp(/^([\s\S]*?)({{2,})([\s\S]*?)(}{2,})([\s\S]*)$/);
 // Regex for interpreting action tokens
-var actionRE = new RegExp(/^({?)\s*([#\/]?)([^}\s]+)\s*([\s\S]*?)(}?)$/);
+var actionRE = new RegExp(/^({?)\s*([#/]?)([^}\s]+)\s*([\s\S]*?)(}?)$/);
 // Regex for splitting action parameters
 var splitter = new RegExp(/\s/);
 // Regex for the if-action parameter to check for negation
@@ -101,7 +99,7 @@ function lex(string) {
 
     // Map from action names to token generators.
     var actionLexers = {
-	    each: makeEach,
+        each: makeEach,
         for: makeFor,
         if: makeIf,
     };
@@ -126,7 +124,7 @@ function lex(string) {
      */
     function makeIf(predicate) {
         var negated = predicate.match(negateRE);
-        makeToken('if', negated[2], { negated: (negated[1] === '!') });
+        makeToken('if', negated[2], {negated: (negated[1] === '!')});
     }
 
     /**
@@ -148,12 +146,11 @@ function lex(string) {
             collection = args[1];
             count = parseInt(args[0]);
         }
-        makeToken('for', collection, { count: count });
+        makeToken('for', collection, {count: count});
     }
 
     /**
      * Make an each-action token
-     *
      * @param {string} collection - The name of the collection to be iterated over
      */
     function makeEach(collection) {
@@ -186,7 +183,7 @@ function lex(string) {
         parameters = parameters || [];
 
         if (openOrClose === '#') {
-            actionLexer = actionLexers[name];
+            var actionLexer = actionLexers[name];
             if (typeof actionLexer === 'function') {
                 actionLexer.apply({}, parameters.split(splitter));
             }
@@ -198,8 +195,8 @@ function lex(string) {
             return;
         }
 
-	    // Whitespace is to be ignored in interpolation names.
-	    name.replace(/[\s]/g, '');
+        // Whitespace is to be ignored in interpolation names.
+        name.replace(/[\s]/g, '');
         makeToken('interpolate', name, {
             encode: encodeOpen && encodeClose,
             original: original,
@@ -235,7 +232,7 @@ function lex(string) {
     // iterate over the string, pulling off leading text and the first token untl there is
     // nothing left.
     while (string) {
-	    string = doMatch(string, tokenRE, handleMatchResult);
+        string = doMatch(string, tokenRE, handleMatchResult);
     }
 
     return tokens;
@@ -250,7 +247,12 @@ function lex(string) {
  * @returns {string} The interpolated string
  **/
 function parse(string, data, options) {
-    return escapeChars(parseString(string, data), options.escape);
+    return parseString(string, data)
+    // console.log('before escaping', parsed);
+    // console.log('options.escape is', options.escape)
+    // var escaped =
+    // console.log('after escaping', escaped);
+    // return escaped;
 
     /**
      * Parse a string relative to a data object.
@@ -260,7 +262,7 @@ function parse(string, data, options) {
      * @returns {string} The parsed string
      **/
     function parseString(string, data) {
-	    return parseTokens(lex(string), data);
+        return parseTokens(lex(string), data);
     }
 
     /**
@@ -287,7 +289,13 @@ function parse(string, data, options) {
             var interpolated = getPropertySafe(token.value, data);
             var type = typeof interpolated;
             if (type === 'undefined') {
-                interpolated = '{{' + token.original + '}}';
+                if (options.removeUnmatched) {
+                    interpolated = '';
+                } else {
+                    interpolated = '{{' + token.original + '}}';
+                }
+                result += interpolated;
+                return false;
             } else if (type === 'string') {
                 interpolated = parseString(interpolated, data);
             } else {
@@ -297,6 +305,8 @@ function parse(string, data, options) {
             if (token.encode) {
                 interpolated = encodeChars(interpolated, options.encode);
             }
+
+            interpolated = escapeChars(interpolated, options.escape);
 
             result += interpolated;
             return false;
@@ -335,7 +345,7 @@ function parse(string, data, options) {
                 return false;
             }
 
-            var list  = getPropertySafe(token.value, data);
+            var list = getPropertySafe(token.value, data);
             var bound = list.length;
             if (token.count) {
                 bound = Math.min(bound, token.count);
@@ -460,28 +470,12 @@ function Easybars() {
     if (this instanceof Easybars) {
         var _options = args[0] || {};
         var options = extend({}, defaultOptions, _options);
-        var tags = extend({}, defaultTags, _options.tags);
-        var tagOpen = tags.raw[0];
-        var tagClose = tags.raw[1];
-        var encodedTagStart = tags.encoded[0];
-        var encodedTagEnd = tags.encoded[1];
-        var sectionTagOpenStart = tags.section[0];
-        var sectionTagOpenStartEscaped = escapeRegExp(sectionTagOpenStart);
-        var sectionTagCloseStart = tags.section[1];
-        var sectionTagCloseStartEscaped = escapeRegExp(sectionTagCloseStart);
-        var sectionTagEnd = tags.section[2];
-        var sectionTagEndEscaped = escapeRegExp(sectionTagEnd);
-        var matchOpenTag = '(' + escapeRegExp(encodedTagStart) + '|' + escapeRegExp(tagOpen) + ')';
-        var matchCloseTag = '(?:' + escapeRegExp(encodedTagEnd) + '|' + escapeRegExp(tagClose) + ')';
-        var complexSectionMatcher = '(' + sectionTagOpenStartEscaped + '([\\w]+) .+)' + '(?:' + sectionTagCloseStartEscaped + '\\2' + sectionTagEndEscaped + ')+';
-        var simpleSectionMatcher = sectionTagOpenStartEscaped + '(([\\w]+) .+?)' + sectionTagEndEscaped;
-        var findTags = new RegExp(complexSectionMatcher + '|' + simpleSectionMatcher + '|' + matchOpenTag + '\\s*(@?[\\w\\.]+)\\s*' + matchCloseTag, 'g');
+        options.tags = extend({}, defaultTags, _options.tags);
 
-        this.compile = function (templateString, components) {
+        this.compile = function (templateString) {
             return function (data) {
                 var parsedString = parse(templateString, data, options);
-                parsedString = applyCollapse(parsedString, options);
-                return parsedString;
+                return applyCollapse(parsedString, options);
             };
         };
 

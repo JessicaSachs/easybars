@@ -18,8 +18,7 @@ var defaultOptions = {
 
 var defaultTags = {
     raw: ['{{', '}}'],
-    encoded: ['{{{', '}}}'],
-    section: ['{{#', '{{/', '}}'],
+    encoded: ['{{{', '}}}']
 };
 
 function each(collection, iteratee, thisArg) {
@@ -257,7 +256,19 @@ function lex(string) {
  * @returns {string} The interpolated string
  **/
 function parse(string, data, options) {
-    return parseString(string, data)
+    return collapse(parseString(string, data));
+
+    /**
+     * Optionally removes the newlines from the parsed string
+     *
+     * @param str {string} - The string to remove the new lines from.
+     *
+     * @returns {string}   - The string after the new lines have been removed.
+     */
+    function collapse(str) {
+        var newlineRegExp = new RegExp(/(\r\n|\r|\n)/g);
+        return options.collapse ? str.replace(newlineRegExp, ' ') : str;
+    }
 
     /**
      * Parse a string relative to a data object.
@@ -468,10 +479,6 @@ function parse(string, data, options) {
     }
 }
 
-function applyCollapse(str, options) {
-    var newlineRegExp = new RegExp(/(\r\n|\r|\n)/g);
-    return options.collapse ? str.replace(newlineRegExp, ' ') : str;
-}
 
 /**
  * Can be used in two ways:
@@ -487,8 +494,7 @@ function Easybars() {
 
         this.compile = function (templateString) {
             return function (data) {
-                var parsedString = parse(templateString, data, options);
-                return applyCollapse(parsedString, options);
+                return parse(templateString, data, options);
             };
         };
 

@@ -8,6 +8,7 @@ var resig = require('resig');
 var expected = '<div class="moo"><a href="#">Cow</a> says moo</div>';
 var templateEasy = '<div class="{{foo}}">{{bar}} says {{foo}}</div>';
 var templateCurly = '<div class="{{foo}}">{{{bar}}} says {{foo}}</div>';
+var conditional = '<div class="{{{foo}}}">{{#if bar}}{{bar}} says moo{{/if}}</div>'
 var templateBrackets = '<div class="<%=foo%>"><%=bar%> says <%=foo%></div>';
 
 var data = {
@@ -30,6 +31,12 @@ var methods = {
     },
     resig: function () {
         return resig(templateBrackets, data);
+    },
+    easybarsClassConditional: function () {
+        return new Easybars().compile(conditional)(data);
+    },
+    easybarsFnConditional: function () {
+        return new Easybars().compile(conditional)(data);
     },
 };
 

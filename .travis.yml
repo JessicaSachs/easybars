@@ -1,0 +1,27 @@
+language: node_js
+node_js:
+- node
+- '8'
+- '7'
+- '6'
+- '5'
+cache:
+  directories:
+  - node_modules
+install:
+- npm install
+script:
+- echo "Running tests against $(node -v) ..."
+- npm test
+jobs:
+  include:
+    - stage: publish
+      install: skip
+      script: skip
+      deploy:
+        provider: npm
+        email: "jsachs8@gmail.com"
+        api_key:
+          secure: z8OUt+NOql91ADrS2O9eXdOBLGGsMDn+gEe87fHGiS0Wr3oomEu1c5QzHX/0h5P2u9VlIEzW2sMbvco/15nZIjWMCOKD96zIhPRQpbTIUId1LdXr/i2xctYFiFXC75WIUkyVOY9Q0sE/86gCJplNsZHVatGVcfog/vWABttJagP//IO8WgHB4rHvX32JBKk4Wh5wxJ/rAOSq18FkwSKPZzjmKSvb+PTJfhJgBM8ANcX/uqSdRC8jQG5Y0acuWZbl6FQQA1U57WsZgaRSpC1+Lt0hRWsIt7dnBa0B5SuyaG+R3mmWUpUGHDZ9vBV6oErmGemPoxa887HgYmD55sUK0gRpemc4HYLQyqIGwmHVS/2yHmkkvBbsmQX+NAp9Wic8NfSytWVJ83QMH+KxZmT90o/rvsRtcD6vZYdHVAzyXl5g+TEmvqdIreE0mxO8k2H0sLb2vefk3KZsqjQ6PVT05T+If/AUQYQSC8OoHESDNE1cz+zWiVsz/97Liwp9TF7AEVrLm7Ilf5zNQUSVtYjA231lpi1E+TkTEr8rH+nyp25Arhb6zj8ycR8c5ohaUnyQElYO/d0IgIIJ+dIZUDYZt221baBm4tfTZEHk0Ne1tbpozthT4WIiGnNzQE4IdQqvdQTKtjsBqj6jP/bbHuTMrNye/RIPKZAHhJUsa9vUbPs=
+        on:
+          branch: master

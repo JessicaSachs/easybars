@@ -267,7 +267,7 @@ function parse(string, data, options) {
      */
     function collapse(str) {
         var newlineRegExp = new RegExp(/(\r\n|\r|\n)/g);
-        return options.collapse ? str.replace(newlineRegExp, ' ') : str;
+        return options.collapse ? str.replace(newlineRegExp, '') : str;
     }
 
     /**

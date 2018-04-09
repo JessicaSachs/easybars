@@ -339,7 +339,6 @@ function parseTokens(tokens, data, enclosure, noResult) {
      */
     function iterate() {
 	var forTokens = findForLoopBody(tokens);
-	console.log('iterate()', forTokens);
 	if (noResult) {
 	    return false;
 	}
@@ -385,7 +384,7 @@ function parseTokens(tokens, data, enclosure, noResult) {
 
 	    if (token.name === 'for') {
 		savedTokens.push(token);
-		savedTokens.push.apply(savedTokens, findForTokens(tokens, true));
+		savedTokens.push.apply(savedTokens, findForLoopBody(tokens, true));
 		continue;
 	    }
 

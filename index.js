@@ -80,65 +80,8 @@ function getPropertySafe(key, data) {
     return key.split('.').reduce(function index(obj,i) {return obj && obj[i]}, data);
 }
 
-function toString(value) {
-    if (typeof value === 'object') {
-        return JSON.stringify(value);
-    }
-    return '' + value;
-}
-
-function getRecordModel(found, index, encodedTagStart) {
-    /** record array looks like this
-    [
-        0: content
-        1: complex section tag contents
-        2: complex section tag name
-        3: simple section tag contents
-        4: simple section tag name
-        5: tag opener
-        6: variable name
-        7: content
-        ...
-    ]
-    **/
-    var record = {};
-    var val = found[index];
-
-    switch (index % 7) {
-        case 0:
-            record.toTemplate = true;
-            record.isContent = true;
-            record.value = val;
-            break;
-        case 1:
-            record.toTemplate = true;
-            record.value = val;
-            record.sectionType = found[index + 1];
-            break;
-        case 2:
-            break;
-        case 3:
-            record.toTemplate = true;
-            record.value = val;
-            record.sectionType = found[index + 1];
-            break;
-        case 4:
-            break;
-        case 5:
-            break;
-        case 6:
-            record.toTemplate = true;
-            record.isVarName = true;
-            record.value = val;
-            record.ref = val;
-            record.encode = found[index - 1] === encodedTagStart;
-    }
-
-    return record;
-}
-
 // The high-level tokenizer
-var tokenRE  = new RegExp(/^([\s\S]*?){{({?[\s\S]*?}*)}}([\s\S]*)$/);
+var tokenRE  = new RegExp(/^([\s\S]*?)({{2,})([\s\S]*?)(}{2,})([\s\S]*)$/);
 // Regex for interpreting action tokens
 var actionRE = new RegExp(/^({?)\s*([#\/]?)([^}\s]+)\s*([\s\S]*?)(}?)$/);
 // Regex for splitting action parameters
@@ -158,7 +101,7 @@ function lex(string) {
 
     // Map from action names to token generators.
     var actionLexers = {
-	each: makeEach,
+	    each: makeEach,
         for: makeFor,
         if: makeIf,
     };
@@ -232,16 +175,16 @@ function lex(string) {
 
     /**
      * Interpret a single action which was delimited by {{ and }} and add it to the token stream.
-     *
-     * @param action      - The entire contents of the {{}} (unused)
+     * @param original      - The entire contents of the {{}} (unused)
      * @param encodeOpen  - An encoding open brace if there was one
      * @param openOrClose - The leading #, /, or nothing as appropriate
      * @param name        - The name of the action
      * @param parameters  - Any parameters which are part of the action
      * @param encodeClose - An encoding close brace if there was one
      */
-    function lexAction(action, encodeOpen, openOrClose, name, parameters, encodeClose) {
+    function lexAction(original, encodeOpen, openOrClose, name, parameters, encodeClose) {
         parameters = parameters || [];
+
         if (openOrClose === '#') {
             actionLexer = actionLexers[name];
             if (typeof actionLexer === 'function') {
@@ -255,12 +198,12 @@ function lex(string) {
             return;
         }
 
-	// Whitespace is to be ignored in interpolation names.
-	name.replace(/[\s]/g, '');
-        makeToken('interpolate', name,
-		  { encode: ((encodeOpen === '{') && (encodeClose === '}')) ,
-		    original: action,
-		  });
+	    // Whitespace is to be ignored in interpolation names.
+	    name.replace(/[\s]/g, '');
+        makeToken('interpolate', name, {
+            encode: encodeOpen && encodeClose,
+            original: original,
+        });
     }
 
     /**
@@ -270,11 +213,15 @@ function lex(string) {
      * @param {string} prefix      - Any text preceding the first token
      * @param {string} token       - The first token found
      * @param {string} suffix      - Any text following the first token found
-     *
      * @returns {string} - The suffix
      */
-    function handleMatchResult(all, prefix, token, suffix) {
+    function handleMatchResult(all, prefix, tokenLeftBraces, token, tokenRightBraces, suffix) {
         if (token) {
+            prefix += tokenLeftBraces.slice(1, tokenLeftBraces.length - 2);
+            suffix = tokenRightBraces.slice(1, tokenRightBraces.length - 2) + suffix;
+            if (tokenLeftBraces.length > 2 && tokenRightBraces.length > 2) {
+                token = '{' + token + '}';
+            }
             if (prefix) {
                 makeToken('text', prefix);
             }
@@ -310,11 +257,10 @@ function parse(string, data, options) {
      *
      * @param {string} string - The string to parse
      * @param (Ojbect} data   - The data object
-     *
      * @returns {string} The parsed string
      **/
     function parseString(string, data) {
-	return parseTokens(lex(string), data);
+	    return parseTokens(lex(string), data);
     }
 
     /**
@@ -325,182 +271,183 @@ function parse(string, data, options) {
      * @param {Object} [data] - The data object
      * @param {string} [enclosure] - The enclosing action, if there is one
      * @param {boolean} [noResult] - Don't return any text, just consume tokens
-     *
      * @returns {string} The parsed stream as a string
      */
     function parseTokens(tokens, data, enclosure, noResult) {
-	/**
-	 * Look up a the key from the current token in the data object and
-	 * parse the result and append it to the the current parse result.
-	 * @returns {boolean} Whether to stop parsing
-	 */
-	function interpolate() {
+        /**
+         * Look up a the key from the current token in the data object and
+         * parse the result and append it to the the current parse result.
+         * @returns {boolean} Whether to stop parsing
+         */
+        function interpolate() {
             if (noResult) {
-		return false;
+                return false;
             }
 
-	    var interpolated = getPropertySafe(token.value, data);
-	    var type         = typeof interpolated;
-	    if (type === 'undefined') {
-		interpolated = '{{' + token.original + '}}';
-	    } else if (type === 'string') {
-		interpolated = parseString(interpolated, data);
-	    } else {
-		interpolated = '' + interpolated;
-	    }
+            var interpolated = getPropertySafe(token.value, data);
+            var type = typeof interpolated;
+            if (type === 'undefined') {
+                interpolated = '{{' + token.original + '}}';
+            } else if (type === 'string') {
+                interpolated = parseString(interpolated, data);
+            } else {
+                interpolated = '' + interpolated;
+            }
 
-	    if (token.encode) {
-		interpolated = encodeChars(interpolated, options.encode);
-	    }
+            if (token.encode) {
+                interpolated = encodeChars(interpolated, options.encode);
+            }
 
             result += interpolated;
             return false;
-	}
+        }
 
-	/**
-	 * Evaluate a conditional expression. The consequent will be
-	 * parsed even if the predicate is false since the tokens need to
-	 * be consumed, but multiple interpolation can be stopped. If the predicate is true,
-	 * the parsed consequent will be appended to the current parse result.
-	 * @returns {boolean} Whether to stop parsing
-	 */
-	function conditionalize() {
+        /**
+         * Evaluate a conditional expression. The consequent will be
+         * parsed even if the predicate is false since the tokens need to
+         * be consumed, but multiple interpolation can be stopped. If the predicate is true,
+         * the parsed consequent will be appended to the current parse result.
+         * @returns {boolean} Whether to stop parsing
+         */
+        function conditionalize() {
             var test = getPropertySafe(token.value, data);
             var noOutput = noResult || (token.negated && test) || (!token.negated && !test);
             result += parseTokens(tokens, data, token.name, noOutput);
             return false;
-	}
+        }
 
-	/**
-	 * Perform an end by signaling the end of parsing if it matches the enclosure and
-	 * ignoring it otherwise.
-	 * @returns {boolean} Whether to stop parsing
-	 */
-	function end() {
-            return (token.value === enclosure);
-	}
+        /**
+         * Perform an end by signaling the end of parsing if it matches the enclosure and
+         * ignoring it otherwise.
+         * @returns {boolean} Whether to stop parsing
+         */
+        function end() {
+            return token.value === enclosure;
+        }
 
-	/**
-	 * Perform repeated interpolation of the statement inside a for loop.
-	 *
-	 * @returns {boolean} Whether to stop parsing
-	 */
-	function iterate() {
-	    var forTokens = findLoopBody(token.name);
-	    if (noResult) {
-		return false;
-	    }
+        /**
+         * Perform repeated interpolation of the statement inside a for loop.
+         * @returns {boolean} Whether to stop parsing
+         */
+        function iterate() {
+            var forTokens = findLoopBody(token.name);
+            if (noResult) {
+                return false;
+            }
 
             var list  = getPropertySafe(token.value, data);
-	    var bound = list.length;
-	    if (token.count) {
-		bound = Math.min(bound, token.count);
-	    }
+            var bound = list.length;
+            if (token.count) {
+                bound = Math.min(bound, token.count);
+            }
 
-	    for (var i = 0; i < bound; i++) {
-		var loopData = extend({}, data);
-		loopData['@index'] = '' + i;
-		loopData['@value'] = list[i];
-		if (typeof list[i] === 'object') {
-		    extend(loopData, list[i]);
-		}
-		result += parseTokens(extend([], forTokens), loopData);
-	    }
+            for (var i = 0; i < bound; i++) {
+                var loopData = extend({}, data);
+                loopData['@index'] = '' + i;
+                loopData['@value'] = list[i];
+                if (typeof list[i] === 'object') {
+                    extend(loopData, list[i]);
+                }
+                result += parseTokens(extend([], forTokens), loopData);
+            }
 
-	    return false;
-	}
+            return false;
+        }
 
-	/**
-	 * Perform repeated interpolation of the statement inside an each loop.
-	 *
-	 * @returns {boolean} Whether to stop parsing
-	 */
-	function map() {
-	    var eachTokens = findLoopBody(token.name);
-	    if (noResult) {
-		return false;
-	    }
+        /**
+         * Perform repeated interpolation of the statement inside an each loop.
+         * @returns {boolean} Whether to stop parsing
+         */
+        function map() {
+            var eachTokens = findLoopBody(token.name);
+            if (noResult) {
+                return false;
+            }
 
             var list = getPropertySafe(token.value, data);
-	    for (var key in list) {
-		if (list.hasOwnProperty(key)) {
-		    var loopData = extend({}, data);
-		    loopData['@key'] = key;
-		    var value        = loopData['@value'] = list[key];
-		    if (typeof value === 'object') {
-			extend(loopData, value);
-		    }
-		    result += parseTokens(extend([], eachTokens), loopData);
-		}
-	    }
+            for (var key in list) {
+                if (list.hasOwnProperty(key)) {
+                    var loopData = extend({}, data);
+                    loopData['@key'] = key;
+                    var value = loopData['@value'] = list[key];
+                    if (typeof value === 'object') {
+                        extend(loopData, value);
+                    }
+                    result += parseTokens(extend([], eachTokens), loopData);
+                }
+            }
 
-	    return false;
-	}
+            return false;
+        }
 
-	/**
-	 * Remove the body of a loop from the token stream and return it as its own token stream.
-	 *
-         * @param  {string}  loop   - What type of loop this is (used to match the end token)
-	 * @oparam {boolean} nested - Whether this is a nested loop, in which case, the start 
-         *                            and end tokens should be included in the returned stream
-	 *
-	 * @returns {Array} The body of the for loop
-	 **/
-	function findLoopBody(loop, nested) {
-	    var savedTokens = [];
-	    var token;
-	    while (token = tokens.splice(0, 1)[0]) {
-		if (token.name === 'end') {
-		    if (token.value === loop) {
-			if (nested) {
-			    savedTokens.push(token);
-			}
-			return savedTokens;
-		    }
-		    continue;
-		}
+        /**
+         * Remove the body of a loop from the token stream and return it as its own token stream.
+         *
+         * @param {string} loop   - What type of loop this is (used to match the end token)
+         * @param {boolean} [nested] - Whether this is a nested loop, in which case, the start
+         * and end tokens should be included in the returned stream
+         * @returns {Array} The body of the for loop
+         **/
+        function findLoopBody(loop, nested) {
+            var savedTokens = [];
+            var token;
+            while (token = tokens.splice(0, 1)[0]) {
+                if (token.name === 'end') {
+                    if (token.value === loop) {
+                        if (nested) {
+                            savedTokens.push(token);
+                        }
+                        return savedTokens;
+                    }
+                    continue;
+                }
 
-		savedTokens.push(token);
+                savedTokens.push(token);
 
-		if ((token.name === 'for') || (token.name === 'each')) {
-		    savedTokens.push.apply(savedTokens, findLoopBody(token.name, true));
-		    continue;
-		}
-	    }
+                if ((token.name === 'for') || (token.name === 'each')) {
+                    savedTokens.push.apply(savedTokens, findLoopBody(token.name, true));
+                    continue;
+                }
+            }
 
-	    return [];
-	}
+            return [];
+        }
 
-	/**
-	 * Append the value of the current token to the parse result.
-	 * @returns {boolean} Whether to stop parsing
-	 */
-	function append() {
+        /**
+         * Append the value of the current token to the parse result.
+         * @returns {boolean} Whether to stop parsing
+         */
+        function append() {
             if (!noResult) {
-		result += token.value;
+                result += token.value;
             }
             return false;
-	}
+        }
 
-	var result = '';
-	var token;
-	var actions = {
-	    each: map,
+        var result = '';
+        var token;
+        var actions = {
+            each: map,
             end: end,
             for: iterate,
             interpolate: interpolate,
             if: conditionalize,
             text: append,
-	};
+        };
 
-	while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
+        while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
             if (actions[token.name]()) {
-	        return result;
-	    }
-	}
+                return result;
+            }
+        }
 
-	return result;
+        return result;
     }
+}
+
+function applyCollapse(str, options) {
+    var newlineRegExp = new RegExp(/(\r\n|\r|\n)/g);
+    return options.collapse ? str.replace(newlineRegExp, ' ') : str;
 }
 
 /**
@@ -532,7 +479,9 @@ function Easybars() {
 
         this.compile = function (templateString, components) {
             return function (data) {
-                return parse(templateString, data, options);
+                var parsedString = parse(templateString, data, options);
+                parsedString = applyCollapse(parsedString, options);
+                return parsedString;
             };
         };
 

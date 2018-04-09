@@ -140,7 +140,7 @@ function getRecordModel(found, index, encodedTagStart) {
 // The high-level tokenizer
 var tokenRE  = new RegExp(/^([\s\S]*?){{({?[\s\S]*?}*)}}([\s\S]*)$/);
 // Regex for interpreting action tokens
-var actionRE = new RegExp(/^({?)([#\/]?)([^}\s]+)\s*([\s\S]*?)(}?)$/);
+var actionRE = new RegExp(/^({?)\s*([#\/]?)([^}\s]+)\s*([\s\S]*?)(}?)$/);
 // Regex for splitting action parameters
 var splitter = new RegExp(/\s/);
 // Regex for the if-action parameter to check for negation
@@ -255,6 +255,8 @@ function lex(string) {
             return;
         }
 
+	// Whitespace is to be ignored in interpolation names.
+	name.replace(/[\s]/g, '');
         makeToken('interpolate', name,
 		  { encode: ((encodeOpen === '{') && (encodeClose === '}')) ,
 		    original: action,
@@ -337,16 +339,20 @@ function parse(string, data, options) {
 		return false;
             }
 
-            var interpolated = getPropertySafe(token.value, data);
-            if (interpolated && typeof interpolated === 'string') {
-		interpolated = parseString(interpolated, data);
-            } else {
+	    var interpolated = getPropertySafe(token.value, data);
+	    var type         = typeof interpolated;
+	    if (type === 'undefined') {
 		interpolated = '{{' + token.original + '}}';
-            }
+	    } else if (type === 'string') {
+		interpolated = parseString(interpolated, data);
+	    } else {
+		interpolated = '' + interpolated;
+	    }
 
 	    if (token.encode) {
 		interpolated = encodeChars(interpolated, options.encode);
 	    }
+
             result += interpolated;
             return false;
 	}

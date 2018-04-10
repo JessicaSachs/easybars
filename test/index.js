@@ -1,6 +1,6 @@
-const FeatherTest = require('feather-test');
+var FeatherTest = require('feather-test');
 
-const myTest = new FeatherTest({
+var myTest = new FeatherTest({
     specs: './specs',
 });
 

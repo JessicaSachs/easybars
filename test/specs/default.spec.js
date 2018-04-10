@@ -29,7 +29,7 @@ describe('with default settings', function () {
     });
 
     describe('works as just a one-off method', function (expect) {
-        expect(Easybars('{{name}} says hello\n{{name}}!', { name: 'Bob' }, { collapse: true })).toBe('Bob says hello Bob!');
+        expect(Easybars('{{name}} says hello \n{{name}}!', { name: 'Bob' }, { collapse: true })).toBe('Bob says hello Bob!');
     });
 
     describe('handles circular objects', function (expect) {

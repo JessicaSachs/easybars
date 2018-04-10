@@ -66,17 +66,7 @@ default is
 ```js
 tags: {
     raw: ['{{','}}'],
-    encoded: ['{{{','}}}'],
-    section: ['{{#','{{/','}}'],
-}
-```
-
-If you don't like curly braces, you can specify which tags to use for replacement. For example, some prefer
-```js
-tags: {
-    raw: ['<%=','%>'],
-    encoded: ['<%-','%>'],
-    section: ['<%#','<%/','%>'],
+    encoded: ['{{{','}}}']
 }
 ```
 
@@ -124,11 +114,7 @@ new Easybars({
         '>': '&gt;',
         '=': '&#x3D;',
     },
-    escape: ['"','8'],
-    tags: {
-        raw: ['<%=','%>'],
-        encoded: ['<%-','%>'],
-    }
+    escape: ['"','8']
 });
 ```
 
@@ -202,59 +188,4 @@ easybars('{{#if fruits}}<ul>{{#for 2 fruits}}<li>{{name}} is {{color}}</li>{{/fo
 // <ul><li>apple is red</li><li>banana is yellow</li></ul>
 easybars('{{#if seasons.fall}}<h1>Harvest {{#if !seasons.harvest}}Soon{{/if}}</h1>{{/if}}', data);
 // <h1>Harvest Soon</h1>
-```
-
-### Components
-
-The `#component` helper tag may be used to insert sub templates into the main template and populate them with their own data objects.
-
-Using `#component` (simple)
-```js
-const template = '{{#component headline}}<p>{{body}}</p>';
-const data = {
-    body: 'All the things',
-    headline: {
-        title: 'Breaking News',
-        subtitle: 'Live on the scene',
-    },
-};
-const components = {
-    headline: '<h1>{{title}}</h1><h2>{{subtitle}}</h2>',
-};
-new Easybars().compile(template, components)(data);
-// <h1>Breaking News</h1><h2>Live on the scene</h2><p>All the things</p>
-```
-
-Using `#component` (advanced)
-```js
-const template = '{{#each articles}}{{#component headline.simple:copy.lead}}{{copy.body}}{{/each}}';
-const data = {
-    articles: [
-        {
-            copy: {
-                lead: {
-                    title: 'Breaking News',
-                    subtitle: 'Live on the scene',
-                },
-                body: '...',
-            },
-        },
-        {
-            copy: {
-                lead: {
-                    title: 'Man Bites Dog',
-                    subtitle: 'Full story at 11',
-                },
-                body: '...',
-            },
-        },
-    ],
-};
-const components = {
-    headline: {
-        simple: '<h1>{{title}}</h1><h2>{{subtitle}}</h2>',
-    },
-};
-new Easybars().compile(template, components)(data);
-// <h1>Breaking News</h1><h2>Live on the scene</h2>...<h1>Man Bites Dog</h1><h2>Full story at 11</h2>...
 ```

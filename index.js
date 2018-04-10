@@ -266,8 +266,8 @@ function parse(string, data, options) {
      * @returns {string}   - The string after the new lines have been removed.
      */
     function collapse(str) {
-        var newlineRegExp = new RegExp(/(\r\n|\r|\n)/g);
-        return options.collapse ? str.replace(newlineRegExp, '') : str;
+        var newlineRegExp = new RegExp(/↵*(\t|\r|\n| ){1,}/g);
+        return options.collapse ? str.replace(newlineRegExp, ' ') : str;
     }
 
     /**

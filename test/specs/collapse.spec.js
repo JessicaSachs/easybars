@@ -14,8 +14,8 @@ describe('collapse', function() {
             expect(actual).toBe('foo bar');
         });
 
-        it('does not trim spaces off the end of strings', function(expect) {
-            var str = 'x-{{foo.bar}}-x ';
+        it('trims spaces off of the end of strings', function(expect) {
+            var str = 'x-{{foo.bar}}-x    ';
             var actual = new Easybars({ collapse: true }).compile(str)(templateData);
             expect(actual).toBe('x-BLAM-x ');
         });

@@ -18,8 +18,30 @@ describe('#for', function () {
     });
 
     describe('iterates less than n times when data is unavailable', function (expect) {
-        var output = Easybars('<ul>{{#for 5 fruits}}<li>{{name}} is {{@index}}</li>{{/for}}</ul>', {fruits: null});
-        expect(output).toBe('<ul></ul>');
+        var output = Easybars('<ul>{{#for 5 fruits}}<li>{{name}} is {{@index}}</li>{{/for}}</ul>', {fruits: [{name: 'apple'}, {name: 'banana'}]});
+        expect(output).toBe('<ul><li>apple is 0</li><li>banana is 1</li></ul>');
+    });
+
+    describe('when data is falsey', function () {
+        describe('iterates 0 times when data is null', function (expect) {
+            var output = Easybars('<ul>{{#for 5 fruits}}<li>{{name}} is {{@index}}</li>{{/for}}</ul>', {fruits: null});
+            expect(output).toBe('<ul></ul>');
+        });
+
+        describe('iterates 0 times when data is false', function (expect) {
+            var output = Easybars('<ul>{{#for 5 fruits}}<li>{{name}} is {{@index}}</li>{{/for}}</ul>', {fruits: false});
+            expect(output).toBe('<ul></ul>');
+        });
+
+        describe('iterates 0 times when data is undefined', function (expect) {
+            var output = Easybars('<ul>{{#for 5 fruits}}<li>{{name}} is {{@index}}</li>{{/for}}</ul>', {fruits: undefined});
+            expect(output).toBe('<ul></ul>');
+        });
+
+        describe('iterates 0 times when data is void', function (expect) {
+            var output = Easybars('<ul>{{#for 5 fruits}}<li>{{name}} is {{@index}}</li>{{/for}}</ul>', {fruits: void 0});
+            expect(output).toBe('<ul></ul>');
+        });
     });
 
     describe('values are still encoded', function (expect) {

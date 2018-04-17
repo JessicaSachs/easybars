@@ -368,19 +368,21 @@ function parse(string, data, options) {
             }
 
             var list = getPropertySafe(token.value, data);
-            var bound = list.length;
-            if (token.count) {
-                bound = Math.min(bound, token.count);
-            }
-
-            for (var i = 0; i < bound; i++) {
-                var loopData = extend({}, data);
-                loopData['@index'] = '' + i;
-                loopData['@value'] = list[i];
-                if (typeof list[i] === 'object') {
-                    extend(loopData, list[i]);
+            if (list) {
+                var bound = list.length;
+                if (token.count) {
+                    bound = Math.min(bound, token.count);
                 }
-                result += parseTokens(extend([], forTokens), loopData);
+
+                for (var i = 0; i < bound; i++) {
+                    var loopData = extend({}, data);
+                    loopData['@index'] = '' + i;
+                    loopData['@value'] = list[i];
+                    if (typeof list[i] === 'object') {
+                        extend(loopData, list[i]);
+                    }
+                    result += parseTokens(extend([], forTokens), loopData);
+                }
             }
 
             return false;
@@ -468,6 +470,7 @@ function parse(string, data, options) {
             if: conditionalize,
             text: append,
         };
+
 
         while ((token = tokens.splice(0, 1)[0]) && Object.keys(token).length) {
             if (actions[token.name]()) {

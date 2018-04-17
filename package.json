@@ -1,6 +1,6 @@
 {
   "name": "easybars",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "String templating made {{easy}}",
   "keywords": [
     "handlebars",

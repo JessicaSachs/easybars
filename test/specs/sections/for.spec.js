@@ -22,6 +22,31 @@ describe('#for', function () {
         expect(output).toBe('<ul><li>apple is 0</li><li>banana is 1</li></ul>');
     });
 
+    describe('when data is falsey', function () {
+        var str = '<ul>{{#for 5 fruits}}<li>{{name}} is {{@index}}</li>{{/for}}</ul>';
+        var expected = '<ul></ul>';
+
+        describe('iterates 0 times when data is null', function (expect) {
+            var output = Easybars(str, {fruits: null});
+            expect(output).toBe(expected);
+        });
+
+        describe('iterates 0 times when data is false', function (expect) {
+            var output = Easybars(str, {fruits: false});
+            expect(output).toBe(expected);
+        });
+
+        describe('iterates 0 times when data is undefined', function (expect) {
+            var output = Easybars(str, {fruits: undefined});
+            expect(output).toBe(expected);
+        });
+
+        describe('iterates 0 times when data is void', function (expect) {
+            var output = Easybars(str, {fruits: void 0});
+            expect(output).toBe(expected);
+        });
+    });
+
     describe('values are still encoded', function (expect) {
         var output = Easybars('<ul>{{#for 1 fruits}}<li>{{{enc}}}:{{not}}</li>{{/for}}</ul>', {
             fruits: [{

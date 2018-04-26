@@ -233,11 +233,12 @@ function lex(string) {
             doMatch(token, actionRE, lexAction);
         } else {
             makeToken('text', all);
+            return;
         }
         return suffix;
     }
 
-    // iterate over the string, pulling off leading text and the first token untl there is
+    // iterate over the string, pulling off leading text and the first token until there is
     // nothing left.
     while (string) {
         string = doMatch(string, tokenRE, handleMatchResult);
@@ -274,7 +275,7 @@ function parse(string, data, options) {
      * Parse a string relative to a data object.
      *
      * @param {string} string - The string to parse
-     * @param (Ojbect} data   - The data object
+     * @param (Object} data   - The data object
      *
      * @returns {string} The parsed string
      **/

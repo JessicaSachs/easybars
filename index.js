@@ -203,6 +203,7 @@ function lex(string) {
         }
 
         // Whitespace is to be ignored in interpolation names.
+        if (typeof name === 'undefined') { name = ''; }
         name.replace(/[\s]/g, '');
         makeToken('interpolate', name, {
             encode: encodeOpen && encodeClose,

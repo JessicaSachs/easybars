@@ -21,6 +21,31 @@ describe('with default settings', function () {
         expect(output).toBe('foo hello {{}} world baz');
     });
 
+    describe('when an inserted string contains {{ }}', function (expect) {
+        var output = Easybars('foo {{___}} baz', { ___: 'hello {{ }} world' });
+        expect(output).toBe('foo hello {{ }} world baz');
+    });
+
+    describe('when an inserted string contains {{    }}', function (expect) {
+        var output = Easybars('foo {{___}} baz', { ___: 'hello {{    }} world' });
+        expect(output).toBe('foo hello {{    }} world baz');
+    });
+
+    describe('when an inserted string contains {{  +0  }}', function (expect) {
+        var output = Easybars('foo {{___}} baz', { ___: 'hello {{  +0  }} world' });
+        expect(output).toBe('foo hello {{  +0  }} world baz');
+    });
+
+    describe('when an inserted string contains {{  😂  }}', function (expect) {
+        var output = Easybars('foo {{___}} baz', { ___: 'hello {{  😂  }} world' });
+        expect(output).toBe('foo hello {{  😂  }} world baz');
+    });
+
+    describe('when an inserted string contains {{  😂  1  2  }}', function (expect) {
+        var output = Easybars('foo {{___}} baz', { ___: 'hello {{  😂  1  2  }} world' });
+        expect(output).toBe('foo hello {{  😂  1  2  }} world baz');
+    });
+
     describe('html chars are encoded when special tag is used', function (expect) {
         var render = easyDefault.compile('<div class="{{{foo}}}">{{bar}} {{elem}}</div>');
         var output = render({ foo: '<>&<>', bar: '"!@#$%^*()-+=', elem: '<a href="#">link</a>' });

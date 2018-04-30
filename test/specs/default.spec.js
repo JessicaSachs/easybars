@@ -16,6 +16,11 @@ describe('with default settings', function () {
         expect(output).toBe('<div class="{hello}">2 {foo} hello</div>');
     });
 
+    describe('when an inserted string contains {{}}', function (expect) {
+        var output = Easybars('foo {{___}} baz', { ___: 'hello {{}} world' });
+        expect(output).toBe('foo hello {{}} world baz');
+    });
+
     describe('html chars are encoded when special tag is used', function (expect) {
         var render = easyDefault.compile('<div class="{{{foo}}}">{{bar}} {{elem}}</div>');
         var output = render({ foo: '<>&<>', bar: '"!@#$%^*()-+=', elem: '<a href="#">link</a>' });

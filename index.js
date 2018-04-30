@@ -218,23 +218,28 @@ function lex(string) {
      * @param {string} token  - The first token found
      * @param {string} suffix - Any text following the first token found
      *
-     * @returns {string} - The suffix
+     * @returns {string} - The suffix (if exists), or undefined if no match.
      */
     function handleMatchResult(all, prefix, tokenLeftBraces, token, tokenRightBraces, suffix) {
-        if (token) {
-            prefix += tokenLeftBraces.slice(1, tokenLeftBraces.length - 2);
-            suffix = tokenRightBraces.slice(1, tokenRightBraces.length - 2) + suffix;
-            if (tokenLeftBraces.length > 2 && tokenRightBraces.length > 2) {
-                token = '{' + token + '}';
-            }
-            if (prefix) {
-                makeToken('text', prefix);
-            }
-            doMatch(token, actionRE, lexAction);
-        } else {
+        if (!token) {
+            // If there is no token, grab everything and make a text token with it.
+            // Return out so you don't continue lexing.
             makeToken('text', all);
             return;
         }
+
+        prefix += tokenLeftBraces.slice(1, tokenLeftBraces.length - 2);
+        suffix = tokenRightBraces.slice(1, tokenRightBraces.length - 2) + suffix;
+
+        if (tokenLeftBraces.length > 2 && tokenRightBraces.length > 2) {
+            token = '{' + token + '}';
+        }
+
+        if (prefix) {
+            makeToken('text', prefix);
+        }
+
+        doMatch(token, actionRE, lexAction);
         return suffix;
     }
 

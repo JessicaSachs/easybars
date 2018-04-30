@@ -202,6 +202,11 @@ function lex(string) {
             return;
         }
 
+        // Default the token name to empty string if the interpolate key format is invalid
+        if (typeof name === 'undefined') {
+            name = '';
+        }
+
         // Whitespace is to be ignored in interpolation names.
         name.replace(/[\s]/g, '');
         makeToken('interpolate', name, {

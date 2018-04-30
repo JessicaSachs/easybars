@@ -16,9 +16,25 @@ describe('with default settings', function () {
         expect(output).toBe('<div class="{hello}">2 {foo} hello</div>');
     });
 
-    describe('when an inserted string contains {{}}', function (expect) {
-        var output = Easybars('foo {{___}} baz', { ___: 'hello {{}} world' });
-        expect(output).toBe('foo hello {{}} world baz');
+    describe('token parsing inserted strings', function() {
+        var tokens = [
+            '{{}}',
+            '{{ }}',
+            '{{    }}',
+            '{{  +0  }}',
+            '{{  😂  }}',
+            '{{  😂  1  2  }}'
+        ];
+
+        tokens.forEach(function (token) {
+            describe('when an inserted string contains ' + token, function (expect) {
+                var str = 'foo {{key}} baz';
+                var d = { key: 'hello ' + token + ' world' };
+                var output = Easybars(str, d);
+                var expected = 'foo hello ' + token + ' world baz';
+                expect(output).toBe(expected);
+            });
+        });
     });
 
     describe('html chars are encoded when special tag is used', function (expect) {

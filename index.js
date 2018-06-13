@@ -93,7 +93,7 @@ var negateRE = new RegExp(/^(!?)(.*)$/);
  *
  * @returns {Array} tokens - The stream of tokens as an array
  **/
-function lex(string) {
+function lex(string, options) {
     // The token stream
     var tokens = [];
 
@@ -251,7 +251,7 @@ function lex(string) {
     // iterate over the string, pulling off leading text and the first token until there is
     // nothing left.
     while (string) {
-        string = doMatch(string, tokenRE, handleMatchResult);
+        string = doMatch(string, options.tokenRE || tokenRE, handleMatchResult);
     }
 
     return tokens;
@@ -290,7 +290,7 @@ function parse(string, data, options) {
      * @returns {string} The parsed string
      **/
     function parseString(string, data) {
-        return parseTokens(lex(string), data);
+        return parseTokens(lex(string, options), data);
     }
 
     /**

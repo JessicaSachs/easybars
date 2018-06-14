@@ -22,7 +22,7 @@ describe('with custom settings', function () {
 
     describe('use a custom token regex matcher', function(expect) {
         var easybars = new Easybars({
-            tokenRE: new RegExp(/^([\s\S]*?)(\\"{{2,})([\s\S]*?)(}{2,}\\")([\s\S]*)$/),
+            tokenRE: '\\"({{2,3})([^{][\\s\\S]*?[^}])(}{2,3})\\"',
         });
         var str = 'background-color: \"{{colorName}}\";';
         var data = { colorName: 'green' };

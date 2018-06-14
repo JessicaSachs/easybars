@@ -13,7 +13,9 @@ var defaultOptions = {
         '`': '&#x60;',
         '=': '&#x3D;',
     },
+    encodeDelimiters: ['{{{', '}}}'],
     escape: [],
+    tokenRE: '({{2,3})([^{][\\s\\S]*?[^}])(}{2,3})',
 };
 
 var defaultTags = {
@@ -77,10 +79,11 @@ function getPropertySafe(key, data) {
     }, data);
 }
 
-// The high-level tokenizer
-var tokenRE = new RegExp(/^([\s\S]*?)({{2,})([\s\S]*?)(}{2,})([\s\S]*)$/);
-// Regex for interpreting action tokens
-var actionRE = new RegExp(/^({?)\s*([#/]?)([^}\s]+)\s*([\s\S]*?)(}?)$/);
+
+// The high-level tokenizer is made as prefixLexer + options.tokenRE + suffixLexer
+var prefixLexer = '^([\\s\\S]*?)';
+var suffixLexer = '([\\s\\S]*)$';
+var actionRE = new RegExp(/^\s*([#/]?)([^}\s]+)\s*([\s\S]*?)$/);
 // Regex for splitting action parameters
 var splitter = new RegExp(/\s/);
 // Regex for the if-action parameter to check for negation
@@ -89,11 +92,13 @@ var negateRE = new RegExp(/^(!?)(.*)$/);
 /**
  * Convert a string to a stream of tokens.
  *
+ * @param {RegExp} tokenizer - The high level tokenizer
  * @param {string} string - The string to lex
+ * @param {Object} options - Configuration options
  *
  * @returns {Array} tokens - The stream of tokens as an array
  **/
-function lex(string, options) {
+function lex(tokenizer, string, options) {
     // The token stream
     var tokens = [];
 
@@ -177,55 +182,18 @@ function lex(string, options) {
     }
 
     /**
-     * Interpret a single action which was delimited by {{ and }} and add it to the token stream.
-     *
-     * @param {string} original    - The entire contents of the {{}} (unused)
-     * @param {string} encodeOpen  - An encoding open brace if there was one
-     * @param {string} openOrClose - The leading #, /, or nothing as appropriate
-     * @param {string} name        - The name of the action
-     * @param {string} parameters  - Any parameters which are part of the action
-     * @param {string} encodeClose - An encoding close brace if there was one
-     */
-    function lexAction(original, encodeOpen, openOrClose, name, parameters, encodeClose) {
-        parameters = parameters || [];
-
-        if (openOrClose === '#') {
-            var actionLexer = actionLexers[name];
-            if (typeof actionLexer === 'function') {
-                actionLexer.apply({}, parameters.split(splitter));
-            }
-            return;
-        }
-
-        if (openOrClose === '/') {
-            makeToken('end', name);
-            return;
-        }
-
-        // Default the token name to empty string if the interpolate key format is invalid
-        if (typeof name === 'undefined') {
-            name = '';
-        }
-
-        // Whitespace is to be ignored in interpolation names.
-        name.replace(/[\s]/g, '');
-        makeToken('interpolate', name, {
-            encode: encodeOpen && encodeClose,
-            original: original,
-        });
-    }
-
-    /**
      * Handle the results of a single match attempt of the tokenizer.
      *
      * @param {string} all    - The entire string that was submitted to the regexp
      * @param {string} prefix - Any text preceding the first token
+     * @param {string} openDelimiter - The opening delimiter of the first token
      * @param {string} token  - The first token found
+     * @param {string} closeDelimiter - The closing delimiter of the first token
      * @param {string} suffix - Any text following the first token found
      *
      * @returns {string} - The suffix (if exists), or undefined if no match.
      */
-    function handleMatchResult(all, prefix, tokenLeftBraces, token, tokenRightBraces, suffix) {
+    function handleMatchResult(all, prefix, openDelimiter, token, closeDelimiter, suffix) {
         if (!token) {
             // If there is no token, grab everything and make a text token with it.
             // Return out so you don't continue lexing.
@@ -233,16 +201,47 @@ function lex(string, options) {
             return;
         }
 
-        prefix += tokenLeftBraces.slice(1, tokenLeftBraces.length - 2);
-        suffix = tokenRightBraces.slice(1, tokenRightBraces.length - 2) + suffix;
-
-        if (tokenLeftBraces.length > 2 && tokenRightBraces.length > 2) {
-            token = '{' + token + '}';
-        }
-
         if (prefix) {
             makeToken('text', prefix);
         }
+	
+        /**
+         * Interpret a single action and add it to the token stream.
+         *
+         * @param {string} original    - The entire contents of the {{}} (unused)
+         * @param {string} openOrClose - The leading #, /, or nothing as appropriate
+         * @param {string} name        - The name of the action
+         * @param {string} parameters  - Any parameters which are part of the action
+         */
+        function lexAction(original, openOrClose, name, parameters) {
+            parameters = parameters || [];
+
+            if (openOrClose === '#') {
+		var actionLexer = actionLexers[name];
+		if (typeof actionLexer === 'function') {
+                    actionLexer.apply({}, parameters.split(splitter));
+		}
+		return;
+            }
+
+            if (openOrClose === '/') {
+		makeToken('end', name);
+		return;
+            }
+	    
+            // Default the token name to empty string if the interpolate key format is invalid
+            if (typeof name === 'undefined') {
+		name = '';
+            }
+	    
+            // Whitespace is to be ignored in interpolation names.
+            name.replace(/[\s]/g, '');
+            makeToken('interpolate', name, {
+		encode: ((openDelimiter == options.encodeDelimiters[0])
+			 && (closeDelimiter == options.encodeDelimiters[1])),
+		original: openDelimiter + original + closeDelimiter,
+            });
+	}
 
         doMatch(token, actionRE, lexAction);
         return suffix;
@@ -251,7 +250,7 @@ function lex(string, options) {
     // iterate over the string, pulling off leading text and the first token until there is
     // nothing left.
     while (string) {
-        string = doMatch(string, options.tokenRE || tokenRE, handleMatchResult);
+        string = doMatch(string, tokenizer, handleMatchResult);
     }
 
     return tokens;
@@ -267,6 +266,7 @@ function lex(string, options) {
  * @returns {string} The interpolated string
  **/
 function parse(string, data, options) {
+    lexRE = new RegExp(prefixLexer + options.tokenRE + suffixLexer);
     return collapse(parseString(string, data));
 
     /**
@@ -290,7 +290,7 @@ function parse(string, data, options) {
      * @returns {string} The parsed string
      **/
     function parseString(string, data) {
-        return parseTokens(lex(string, options), data);
+        return parseTokens(lex(lexRE, string, options), data);
     }
 
     /**
@@ -322,7 +322,7 @@ function parse(string, data, options) {
                 if (options.removeUnmatched) {
                     interpolated = '';
                 } else {
-                    interpolated = '{{' + token.original + '}}';
+                    interpolated = token.original;
                 }
                 result += interpolated;
                 return false;

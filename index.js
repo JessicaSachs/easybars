@@ -446,7 +446,6 @@ function parse(string, data, options) {
                         }
                         return savedTokens;
                     }
-                    continue;
                 }
 
                 savedTokens.push(token);

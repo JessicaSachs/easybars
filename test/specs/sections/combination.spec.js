@@ -76,4 +76,29 @@ describe('using multiple sections at the same time', function () {
         expect(output).toBe('00 01 apple:sweet 04,juicy 05, 02 banana:sweet 06,mushy 07,');
     });
 
+    describe('nested eaches and ifs with falsey conditionals', function (expect) {
+        var nestedFruitData = {
+            fruits: [
+                {
+                    color: 'red',
+                    name: 'apple',
+                },
+                {
+                    color: 'orange',
+                    name: 'tangerine',
+                },
+                {
+                    name: 'pear',
+                },
+                {
+                    color: 'purple',
+                    name: 'eggplant',
+                }
+            ],
+        };
+
+        var output = Easybars('{{#each fruits}}Fruit: {{#if color}}{{color}} {{/if}}{{name}}, {{/each}}', nestedFruitData);
+        var expected = 'Fruit: red apple, Fruit: orange tangerine, Fruit: pear, Fruit: purple eggplant, ';
+        expect(output).toBe(expected);
+    });
 });

@@ -15,13 +15,13 @@ script:
 - npm test
 jobs:
   include:
-    - stage: publish
-      install: skip
-      script: skip
-      deploy:
-        provider: npm
-        email: "jsachs8@gmail.com"
-        api_key:
-          secure: t1/Uwbg8sM8stttiXF9u82uUxY4a9aZKTYITVnZVC+zwbX85xfN4HePn+6g5XtEfeSmLs5OXkFnBnWLi6UDXJz9W15F1RbbBAspbZ0zAQ/mhpEdWCStV6XI/Jxf/ege6IUILt6PB9jjNAGthIQxTar7ldJJ3bPaUHhzU5Lo+rt8V7d7q4+pJyqNM/4olD/PI6RWrj3fyh9WRwhbHwqzs6rF9DxR6zMgBFN5oX08eYY1jRv0I7gadiD0nvEAItryL0dLDlLyHHIyn0qEp/jnp7fPUu0+VzZgCMoZVxHYMjrBTdBLoD6XaIDI3X+4RzCcTUdbdBGrJIDL2vmzsihKXxF/z6KvEXQqYVLp6HNg6ns9aD49/vDKLP0mtq0cLzd74WPtXPU95g7tL35W2akVPWX85hfG3NYmsiq+fHnPfPJMPtFUv+pwrPjpcmE20+9qCmojMuuZPRXmcSdsWzCD9yUYLTtuUVKSABO6WTtBH2edxQAWy/7WXGEN6asHwtvHihh7pbG7Jk3iz+l3qRO590IEMp3XmL9+n9OyDU7gOeOKvPgwpqw4wWNYd6BPAFh+KeM1cevVU9UUoNZcLcF3M7OntXfKlKmC1ND4uvEmhAV/C11rOh3xOxhjq2BEbv2XtTE3y4ZWPGRwGovESDN/IqyramLyrfMeP+ElJdWKx92c=
-        on:
-          branch: master
+  - stage: publish
+    install: skip
+    script: skip
+    deploy:
+      provider: npm
+      email: jsachs8@gmail.com
+      api_key:
+        secure: KZaijSz7F3i/k6+uLUrAwTOAPqXWrSF2bQJvbNs+LzVAYoa83NZ0iO/bfy0mWt/YjozLP86nY666cP2X5i0n5gsfuzVmuyFwiOV26U3Rrjd9ORAbXT//JntntHTM0243GRmj2f/TuhYNykZZTXPKkFPNMZ5qiGxnXRjaWa6c6Ckwx/iM8R2Bh/mL8vpVmStpXVwTa++fKD0SOxh1K5xrwheNe73S5CB0+mU7sz34+q6ZiJ1bWDMRXKkldqBxFICnaqbCV2Etw+/6iDaGmrAEfiHGgg7OW0eaIvtlL/sTIAY75k52Ll+kDGsoifEARXc+J8RmIzl72PQ4jJLC3HwC4SuXw1rOlZwJOcxVGW3hEsdmQFHMykxrzzSosRHj3QWXEJfcoJfsAKgYm8plPiq50MdwExlrw5PlYjY8H344nZV3/ds5QlteN+dkzKmBZaoSKpCtn4khxyWKe1Rh7vxGmghiy6yvXT65Pzp0jr/+js8BHE+A1EMnzm+M4baFhsoOK3L3UYzTZlWfVys/MZMfje+l8w6NTmQagkgyL3bCBuxlHSJMnSS+oXfjusiU+lvspjn6qkSfsuJtTtt+YSwhiduhlLsjHaociBeDP+oXkazcouTXjSt/44im6qq0iZ4rwrueNEbdtF2UbYEWX0jvgdwKO113oOwbS+zs2Bo1Ksw=
+      on:
+        branch: master

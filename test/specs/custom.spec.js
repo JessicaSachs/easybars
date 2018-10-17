@@ -17,11 +17,18 @@ describe('with custom settings', function () {
             '=': '0',
         },
         escape: ['"','8'],
-        removeUnmatched: true,
-        // tags: {
-        //     raw: ['<%=','%>'],
-        //     encoded: ['<%-','%>'],
-        // },
+        removeUnmatched: true
+    });
+
+    describe('use a custom token regex matcher', function(expect) {
+        var easybars = new Easybars({
+            tokenRE: '\\"({{2,3})([^{][\\s\\S]*?[^}])(}{2,3})\\"',
+        });
+        var str = 'background-color: \"{{colorName}}\";';
+        var data = { colorName: 'green' };
+        var render = easybars.compile(str);
+        var output = render(data);
+        expect(output).toBe('background-color: green;');
     });
 
     describe('custom encodings and escaping work', function(expect) {
